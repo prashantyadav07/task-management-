@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { usersAPI, teamsAPI } from '../../services/api';
 
-const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdded }) => {
+const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdded, teams, selectedTeamId, onTeamChange }) => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -21,12 +21,26 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    // Local team selection state
+    const [localTeamId, setLocalTeamId] = useState(teamId || selectedTeamId || null);
+    const [localExistingMembers, setLocalExistingMembers] = useState(existingMembers || []);
+
     // Fetch all platform users when modal opens
     useEffect(() => {
         if (isOpen) {
             fetchUsers();
+            if (teams && teams.length > 0 && !localTeamId) {
+                setLocalTeamId(teams[0].id);
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, teams]);
+
+    // Fetch team members when team changes
+    useEffect(() => {
+        if (localTeamId && isOpen) {
+            fetchTeamMembers(localTeamId);
+        }
+    }, [localTeamId, isOpen]);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -40,8 +54,17 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
         }
     };
 
+    const fetchTeamMembers = async (teamId) => {
+        try {
+            const response = await teamsAPI.getTeamMembers(teamId);
+            setLocalExistingMembers(response.data.members || []);
+        } catch (err) {
+            console.error('Failed to fetch team members:', err);
+        }
+    };
+
     // Filter out existing members
-    const existingMemberIds = existingMembers?.map(m => m.id) || [];
+    const existingMemberIds = localExistingMembers?.map(m => m.id) || [];
     const availableUsers = users.filter(user => !existingMemberIds.includes(user.id));
 
     // Apply search filter
@@ -52,14 +75,14 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!selectedUserId) return;
+        if (!selectedUserId || !localTeamId) return;
 
         setError('');
         setSuccess('');
         setSubmitting(true);
 
         try {
-            await teamsAPI.addMemberToTeam(teamId, selectedUserId);
+            await teamsAPI.addMemberToTeam(localTeamId, selectedUserId);
             const addedUser = users.find(u => u.id === selectedUserId);
             setSuccess(`${addedUser?.name || 'User'} added to team successfully!`);
             onMemberAdded?.();
@@ -81,6 +104,14 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
         setError('');
         setSuccess('');
         onClose();
+    };
+
+    const handleTeamChange = (teamId) => {
+        setLocalTeamId(teamId);
+        setSelectedUserId('');
+        if (onTeamChange) {
+            onTeamChange(teamId);
+        }
     };
 
     return (
@@ -115,7 +146,7 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Add Member</h2>
-                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Add an existing platform user to this team</p>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Add an existing platform user to a team</p>
                                 </div>
                             </div>
                             <button
@@ -142,6 +173,22 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                                 <div className="alert alert-success mb-4">
                                     <CheckCircle2 className="w-4 h-4" />
                                     <p className="text-sm">{success}</p>
+                                </div>
+                            )}
+
+                            {/* Team Selection */}
+                            {teams && teams.length > 0 && (
+                                <div className="form-group mb-4">
+                                    <label className="form-label">Select Team</label>
+                                    <select
+                                        value={localTeamId || ''}
+                                        onChange={(e) => handleTeamChange(parseInt(e.target.value))}
+                                        className="input"
+                                    >
+                                        {teams.map(team => (
+                                            <option key={team.id} value={team.id}>{team.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             )}
 
@@ -213,7 +260,7 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                                 </button>
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={submitting || !selectedUserId}
+                                    disabled={submitting || !selectedUserId || !localTeamId}
                                     className="btn btn-primary flex-1"
                                 >
                                     {submitting ? (

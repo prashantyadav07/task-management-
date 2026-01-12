@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X,
@@ -9,15 +9,41 @@ import {
     Loader2,
     AlertCircle
 } from 'lucide-react';
-import { tasksAPI } from '../../services/api';
+import { tasksAPI, teamsAPI } from '../../services/api';
 
-const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated }) => {
+const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated, teams }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [assignedToUserId, setAssignedToUserId] = useState('');
     const [dueDate, setDueDate] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Local team selection state
+    const [localTeamId, setLocalTeamId] = useState(teamId || null);
+    const [localMembers, setLocalMembers] = useState(members || []);
+
+    useEffect(() => {
+        if (teams && teams.length > 0 && !localTeamId) {
+            setLocalTeamId(teams[0].id);
+        }
+    }, [teams, localTeamId]);
+
+    // Fetch members when team changes
+    useEffect(() => {
+        if (localTeamId && isOpen && teams) {
+            fetchTeamMembers(localTeamId);
+        }
+    }, [localTeamId, isOpen]);
+
+    const fetchTeamMembers = async (teamId) => {
+        try {
+            const response = await teamsAPI.getTeamMembers(teamId);
+            setLocalMembers(response.data.members || []);
+        } catch (err) {
+            console.error('Failed to fetch team members:', err);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -28,7 +54,7 @@ const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated }) =>
             const taskData = {
                 title,
                 description,
-                teamId,
+                teamId: localTeamId,
                 assignedToUserId: assignedToUserId || undefined,
                 dueDate: dueDate || undefined
             };
@@ -52,10 +78,18 @@ const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated }) =>
         onClose();
     };
 
+    const handleTeamChange = (teamId) => {
+        setLocalTeamId(teamId);
+        setAssignedToUserId('');
+    };
+
     // Get tomorrow's date as minimum for due date
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const minDate = tomorrow.toISOString().split('T')[0];
+
+    // Use passed members or local members
+    const membersToShow = members && members.length > 0 ? members : localMembers;
 
     return (
         <AnimatePresence>
@@ -89,7 +123,7 @@ const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated }) =>
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Create Task</h2>
-                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Add a new task to the team</p>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Add a new task to a team</p>
                                 </div>
                             </div>
                             <button
@@ -113,6 +147,23 @@ const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated }) =>
 
                             {/* Form */}
                             <form onSubmit={handleSubmit} className="space-y-4">
+                                {/* Team Selection (if teams prop is provided) */}
+                                {teams && teams.length > 0 && (
+                                    <div className="form-group">
+                                        <label className="form-label">Select Team *</label>
+                                        <select
+                                            value={localTeamId || ''}
+                                            onChange={(e) => handleTeamChange(parseInt(e.target.value))}
+                                            className="input"
+                                            required
+                                        >
+                                            {teams.map(team => (
+                                                <option key={team.id} value={team.id}>{team.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
                                 <div className="form-group">
                                     <label className="form-label">Task Title *</label>
                                     <div className="relative">
@@ -154,7 +205,7 @@ const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated }) =>
                                             style={{ paddingLeft: '3rem' }}
                                         >
                                             <option value="">Select a team member</option>
-                                            {members?.map((member) => (
+                                            {membersToShow?.map((member) => (
                                                 <option key={member.id} value={member.id}>
                                                     {member.name} ({member.email})
                                                 </option>
@@ -188,7 +239,7 @@ const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated }) =>
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={loading || !title.trim()}
+                                        disabled={loading || !title.trim() || !localTeamId}
                                         className="btn btn-primary flex-1"
                                     >
                                         {loading ? (

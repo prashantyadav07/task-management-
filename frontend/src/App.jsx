@@ -24,6 +24,7 @@ const App = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/invite" element={<InviteSignupPage />} />
+          <Route path="/accept-invite" element={<InviteSignupPage />} />
 
           {/* Protected Routes */}
           <Route

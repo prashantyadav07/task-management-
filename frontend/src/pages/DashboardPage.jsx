@@ -8,11 +8,12 @@ import {
     TrendingUp,
     Calendar,
     ArrowRight,
-    Loader2
+    User
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { tasksAPI, teamsAPI, usersAPI } from '../services/api';
+import { tasksAPI, teamsAPI, usersAPI, analyticsAPI } from '../services/api';
+import TaskDetailModal from '../components/modals/TaskDetailModal';
 
 const DashboardPage = () => {
     const { user, isAdmin } = useAuth();
@@ -22,42 +23,70 @@ const DashboardPage = () => {
         inProgress: 0,
         completed: 0
     });
+    const [allTasks, setAllTasks] = useState([]);
     const [teams, setTeams] = useState([]);
     const [recentTasks, setRecentTasks] = useState([]);
     const [userCount, setUserCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
+    // Modal state
+    const [taskModalOpen, setTaskModalOpen] = useState(false);
+    const [taskModalTitle, setTaskModalTitle] = useState('');
+    const [taskModalFilter, setTaskModalFilter] = useState(null);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const apiCalls = [
-                    tasksAPI.getMyTasks(),
+                    isAdmin ? analyticsAPI.getDashboardStats() : tasksAPI.getMyTasks(),
                     teamsAPI.getTeams()
                 ];
 
-                // Fetch user count for admins
+                // Fetch user count and all tasks for admins
                 if (isAdmin) {
                     apiCalls.push(usersAPI.getUserCount());
+                    apiCalls.push(analyticsAPI.getAllTasks());
                 }
 
                 const results = await Promise.all(apiCalls);
-                const [tasksRes, teamsRes] = results;
+                const [dashboardRes, teamsRes] = results;
                 const userCountRes = isAdmin ? results[2] : null;
+                const allTasksRes = isAdmin ? results[3] : null;
 
-                const tasks = tasksRes.data.tasks || [];
-                setRecentTasks(tasks.slice(0, 5));
-                setTeams(teamsRes.data.teams || []);
+                let tasks = [];
+                let statsData = {};
 
-                if (userCountRes) {
-                    setUserCount(userCountRes.data.data?.totalUsers || 0);
+                if (isAdmin) {
+                    // For admin: use analytics dashboard stats (access data at response.data.data)
+                    const data = dashboardRes.data?.data || {};
+                    statsData = {
+                        total: data.totalTasks || 0,
+                        assigned: data.assignedTasks || 0,  // Count of tasks with ASSIGNED status
+                        inProgress: data.inProgressTasks || 0,
+                        completed: data.completedTasks || 0
+                    };
+                    // Set all tasks for modal functionality
+                    tasks = allTasksRes?.data?.data || [];
+                } else {
+                    // For members: use personal tasks
+                    tasks = dashboardRes.data?.tasks || [];
+                    statsData = {
+                        total: tasks.length,
+                        assigned: tasks.filter(t => t.status === 'ASSIGNED').length,
+                        inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
+                        completed: tasks.filter(t => t.status === 'COMPLETED').length
+                    };
                 }
 
-                setStats({
-                    total: tasks.length,
-                    assigned: tasks.filter(t => t.status === 'ASSIGNED').length,
-                    inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
-                    completed: tasks.filter(t => t.status === 'COMPLETED').length
-                });
+                setAllTasks(tasks);
+                setRecentTasks(tasks.slice(0, 5));
+                setTeams(teamsRes.data?.teams || []);
+
+                if (userCountRes) {
+                    setUserCount(userCountRes.data?.data?.totalUsers || 0);
+                }
+
+                setStats(statsData);
             } catch (error) {
                 console.error('Failed to fetch dashboard data:', error);
             } finally {
@@ -68,34 +97,48 @@ const DashboardPage = () => {
         fetchData();
     }, [isAdmin]);
 
+    const handleStatCardClick = (label, statusFilter) => {
+        setTaskModalTitle(label);
+        setTaskModalFilter(statusFilter);
+        setTaskModalOpen(true);
+    };
+
     const statCards = [
         {
             label: 'Total Tasks',
             value: stats.total,
             icon: CheckSquare,
             bgColor: '#eff6ff',
-            iconColor: '#2563eb'
+            iconColor: '#2563eb',
+            clickable: true,
+            statusFilter: null
         },
         {
             label: 'Assigned',
             value: stats.assigned,
             icon: Clock,
             bgColor: '#f0f9ff',
-            iconColor: '#0891b2'
+            iconColor: '#0891b2',
+            clickable: true,
+            statusFilter: 'ASSIGNED'
         },
         {
             label: 'In Progress',
             value: stats.inProgress,
             icon: TrendingUp,
             bgColor: '#fef3c7',
-            iconColor: '#f59e0b'
+            iconColor: '#f59e0b',
+            clickable: true,
+            statusFilter: 'IN_PROGRESS'
         },
         {
             label: 'Completed',
             value: stats.completed,
             icon: CheckCircle2,
             bgColor: '#dcfce7',
-            iconColor: '#22c55e'
+            iconColor: '#22c55e',
+            clickable: true,
+            statusFilter: 'COMPLETED'
         },
         // Admin-only: Total Users stat
         ...(isAdmin ? [{
@@ -104,7 +147,8 @@ const DashboardPage = () => {
             icon: Users,
             bgColor: '#fce7f3',
             iconColor: '#ec4899',
-            link: '/users'
+            link: '/users',
+            clickable: false
         }] : [])
     ];
 
@@ -150,7 +194,18 @@ const DashboardPage = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="stat-card"
+                        className={`stat-card ${stat.clickable ? 'cursor-pointer hover:shadow-lg' : ''}`}
+                        onClick={() => {
+                            if (stat.clickable) {
+                                handleStatCardClick(stat.label, stat.statusFilter);
+                            } else if (stat.link) {
+                                window.location.href = stat.link;
+                            }
+                        }}
+                        style={{
+                            transition: 'all 0.2s ease',
+                            ...(stat.clickable && { cursor: 'pointer' })
+                        }}
                     >
                         <div className="flex items-start justify-between">
                             <div>
@@ -164,6 +219,11 @@ const DashboardPage = () => {
                                 <stat.icon className="w-6 h-6" style={{ color: stat.iconColor }} />
                             </div>
                         </div>
+                        {stat.clickable && (
+                            <p className="text-xs mt-2" style={{ color: 'var(--color-primary)' }}>
+                                Click to view details →
+                            </p>
+                        )}
                     </motion.div>
                 ))}
             </div>
@@ -206,11 +266,20 @@ const DashboardPage = () => {
                                             <h3 className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                                                 {task.title}
                                             </h3>
-                                            {task.description && (
-                                                <p className="text-sm line-clamp-1" style={{ color: 'var(--text-secondary)' }}>
-                                                    {task.description}
-                                                </p>
-                                            )}
+                                            <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                                                {task.team_name && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Users className="w-3 h-3" />
+                                                        {task.team_name}
+                                                    </span>
+                                                )}
+                                                {task.assigned_to_name && (
+                                                    <span className="flex items-center gap-1">
+                                                        <User className="w-3 h-3" />
+                                                        {task.assigned_to_name}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <span className={`badge ${getStatusBadge(task.status)}`}>
                                             {task.status?.replace('_', ' ')}
@@ -307,6 +376,15 @@ const DashboardPage = () => {
                     )}
                 </motion.div>
             </div>
+
+            {/* Task Detail Modal */}
+            <TaskDetailModal
+                isOpen={taskModalOpen}
+                onClose={() => setTaskModalOpen(false)}
+                title={taskModalTitle}
+                tasks={allTasks}
+                statusFilter={taskModalFilter}
+            />
         </div>
     );
 };

@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getDashboardStats,
+  getAllTasks,
   getCompletedTasks,
   getRecentTasks,
   getTeamStats,
@@ -22,6 +23,13 @@ router.use(authenticateToken);
  * Requires: ADMIN role
  */
 router.get('/dashboard', authorizeAdmin, getDashboardStats);
+
+/**
+ * All Tasks for Admin Dashboard
+ * GET /api/analytics/all-tasks
+ * Requires: ADMIN role
+ */
+router.get('/all-tasks', authorizeAdmin, getAllTasks);
 
 /**
  * Completed Tasks with Timestamps

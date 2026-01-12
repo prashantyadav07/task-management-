@@ -11,9 +11,10 @@ const AnalyticsModel = {
   getDashboardStats: async () => {
     const client = await pool.connect();
     try {
-      const [totalTasks, assignedUsers, inProgress, completed, completionRate] = await Promise.all([
+      const [totalTasks, assignedUsers, assignedTasks, inProgress, completed, completionRate] = await Promise.all([
         client.query(QUERIES.ANALYTICS.GET_TOTAL_TASKS),
         client.query(QUERIES.ANALYTICS.GET_ASSIGNED_USERS_COUNT),
+        client.query(QUERIES.ANALYTICS.GET_ASSIGNED_TASKS),
         client.query(QUERIES.ANALYTICS.GET_IN_PROGRESS_TASKS, ['IN_PROGRESS']),
         client.query(QUERIES.ANALYTICS.GET_COMPLETED_TASKS, ['COMPLETED']),
         client.query(QUERIES.ANALYTICS.GET_COMPLETION_RATE),
@@ -24,6 +25,7 @@ const AnalyticsModel = {
       return {
         totalTasks: parseInt(totalTasks.rows[0]?.total_tasks || 0, 10),
         assignedUsers: parseInt(assignedUsers.rows[0]?.assigned_users || 0, 10),
+        assignedTasks: parseInt(assignedTasks.rows[0]?.assigned_tasks || 0, 10),
         inProgressTasks: parseInt(inProgress.rows[0]?.in_progress_tasks || 0, 10),
         completedTasks: parseInt(completed.rows[0]?.completed_tasks || 0, 10),
         completionRate: parseFloat(completionRate.rows[0]?.completion_rate_percentage || 0),
@@ -31,6 +33,26 @@ const AnalyticsModel = {
     } catch (error) {
       Logger.error('Failed to retrieve dashboard statistics', error);
       throw new DatabaseError('Failed to retrieve dashboard statistics', error);
+    } finally {
+      client.release();
+    }
+  },
+
+  /**
+   * Get all tasks with user and team details (for admin dashboard)
+   * @throws {DatabaseError}
+   */
+  getAllTasks: async () => {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(QUERIES.ANALYTICS.GET_ALL_TASKS);
+
+      Logger.debug('All tasks retrieved', { count: result.rowCount });
+
+      return result.rows;
+    } catch (error) {
+      Logger.error('Failed to retrieve all tasks', error);
+      throw new DatabaseError('Failed to retrieve all tasks', error);
     } finally {
       client.release();
     }

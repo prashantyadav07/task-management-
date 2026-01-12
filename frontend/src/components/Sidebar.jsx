@@ -8,12 +8,16 @@ import {
     ChevronLeft,
     Menu,
     User,
-    UserCog
+    UserCog,
+    Plus,
+    Send,
+    UserPlus,
+    ClipboardList
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
-const Sidebar = () => {
+const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
     const { user, logout, isAdmin } = useAuth();
     const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(false);
@@ -46,6 +50,28 @@ const Sidebar = () => {
             label: 'Users'
         }] : [])
     ];
+
+    // Admin quick actions
+    const quickActions = isAdmin ? [
+        {
+            icon: ClipboardList,
+            label: 'Create Task',
+            onClick: onCreateTask,
+            color: '#2563eb'
+        },
+        {
+            icon: UserPlus,
+            label: 'Add Member',
+            onClick: onAddMember,
+            color: '#22c55e'
+        },
+        {
+            icon: Send,
+            label: 'Invite Member',
+            onClick: onInviteMember,
+            color: '#8b5cf6'
+        }
+    ] : [];
 
     return (
         <motion.aside
@@ -80,8 +106,36 @@ const Sidebar = () => {
                 </button>
             </div>
 
+            {/* Quick Actions (Admin Only) */}
+            {isAdmin && quickActions.length > 0 && (
+                <div className="p-3 border-b border-white/10">
+                    {!collapsed && (
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Quick Actions</p>
+                    )}
+                    <div className="space-y-1">
+                        {quickActions.map((action) => (
+                            <button
+                                key={action.label}
+                                onClick={action.onClick}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium
+                                    hover:bg-white/10 text-slate-300 hover:text-white ${collapsed ? 'justify-center' : ''}`}
+                            >
+                                <action.icon
+                                    className="w-5 h-5 flex-shrink-0"
+                                    style={{ color: action.color }}
+                                />
+                                {!collapsed && <span>{action.label}</span>}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Navigation */}
             <nav className="flex-1 p-3 space-y-1">
+                {!collapsed && (
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Navigation</p>
+                )}
                 {navItems.map((item) => (
                     <NavLink
                         key={item.to}

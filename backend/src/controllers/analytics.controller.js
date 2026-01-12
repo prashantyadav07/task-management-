@@ -35,6 +35,38 @@ export const getDashboardStats = async (req, res, next) => {
 };
 
 /**
+ * Get all tasks for admin dashboard
+ * GET /api/analytics/all-tasks
+ * Requires: ADMIN role
+ */
+export const getAllTasks = async (req, res, next) => {
+  try {
+    Logger.debug('Fetching all tasks for admin dashboard');
+
+    const tasks = await AnalyticsModel.getAllTasks();
+
+    Logger.info('All tasks retrieved successfully', { count: tasks.length });
+
+    return res.status(200).json({
+      success: true,
+      message: 'All tasks retrieved successfully',
+      count: tasks.length,
+      data: tasks,
+    });
+  } catch (error) {
+    Logger.error('Get all tasks error', error, {
+      userId: req.user?.userId,
+    });
+
+    res.status(500).json({
+      success: false,
+      errorCode: 'ANALYTICS_ERROR',
+      message: 'Failed to retrieve all tasks',
+    });
+  }
+};
+
+/**
  * Get completed tasks with timestamps
  * GET /api/analytics/completed-tasks
  * Requires: ADMIN role

@@ -80,6 +80,7 @@ export const usersAPI = {
 // Analytics API (Admin Only)
 export const analyticsAPI = {
   getDashboardStats: () => api.get('/analytics/dashboard'),
+  getAllTasks: () => api.get('/analytics/all-tasks'),
   getCompletedTasks: () => api.get('/analytics/completed-tasks'),
   getRecentTasks: (limit = 10) => api.get(`/analytics/recent-tasks?limit=${limit}`),
   getTeamStats: (teamId) => api.get(`/analytics/team/${teamId}`),

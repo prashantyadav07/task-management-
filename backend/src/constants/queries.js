@@ -38,16 +38,43 @@ const QUERIES = {
   ANALYTICS: {
     // Total tasks across all teams
     GET_TOTAL_TASKS: 'SELECT COUNT(*) as total_tasks FROM tasks',
-    
+
     // Total assigned users (distinct users assigned at least one task)
     GET_ASSIGNED_USERS_COUNT: 'SELECT COUNT(DISTINCT assigned_to_user_id) as assigned_users FROM tasks',
-    
+
+    // Total tasks with ASSIGNED status
+    GET_ASSIGNED_TASKS: "SELECT COUNT(*) as assigned_tasks FROM tasks WHERE status = 'ASSIGNED'",
+
+    // Get ALL tasks with user and team details (for admin dashboard modal)
+    GET_ALL_TASKS: `
+      SELECT 
+        t.id,
+        t.title,
+        t.description,
+        t.status,
+        t.assigned_to_user_id,
+        t.assigned_by_user_id,
+        t.team_id,
+        t.assigned_at,
+        t.started_at,
+        t.completed_at,
+        t.due_date,
+        u.name as assigned_to_name,
+        u.email as assigned_to_email,
+        tm.name as team_name
+      FROM tasks t
+      LEFT JOIN users u ON t.assigned_to_user_id = u.id
+      LEFT JOIN teams tm ON t.team_id = tm.id
+      ORDER BY t.assigned_at DESC
+    `,
+
     // Total in-progress tasks
     GET_IN_PROGRESS_TASKS: 'SELECT COUNT(*) as in_progress_tasks FROM tasks WHERE status = $1',
-    
+
     // Total completed tasks
     GET_COMPLETED_TASKS: 'SELECT COUNT(*) as completed_tasks FROM tasks WHERE status = $1',
-    
+
+
     // Tasks with completion timestamps
     GET_COMPLETED_TASKS_WITH_TIMESTAMPS: `
       SELECT 
@@ -64,7 +91,7 @@ const QUERIES = {
       WHERE status = $1
       ORDER BY completed_at DESC
     `,
-    
+
     // Recent tasks (last N tasks)
     GET_RECENT_TASKS: `
       SELECT 
@@ -83,7 +110,7 @@ const QUERIES = {
       ORDER BY assigned_at DESC
       LIMIT $1
     `,
-    
+
     // Task statistics for a specific team
     GET_TEAM_TASK_STATS: `
       SELECT 
@@ -94,7 +121,7 @@ const QUERIES = {
       FROM tasks
       WHERE team_id = $1
     `,
-    
+
     // User-specific task analytics
     GET_USER_TASK_STATS: `
       SELECT 
@@ -105,7 +132,7 @@ const QUERIES = {
       FROM tasks
       WHERE assigned_to_user_id = $1
     `,
-    
+
     // Average task completion time
     GET_AVERAGE_COMPLETION_TIME: `
       SELECT 
@@ -113,7 +140,7 @@ const QUERIES = {
       FROM tasks
       WHERE status = $1 AND completed_at IS NOT NULL
     `,
-    
+
     // Task completion rate
     GET_COMPLETION_RATE: `
       SELECT 

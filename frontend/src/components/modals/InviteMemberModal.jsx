@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Send, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { invitesAPI } from '../../services/api';
 
-const InviteMemberModal = ({ isOpen, onClose, teamId }) => {
+const InviteMemberModal = ({ isOpen, onClose, teamId, teams, selectedTeamId, onTeamChange }) => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+
+    // Local team selection state
+    const [localTeamId, setLocalTeamId] = useState(teamId || selectedTeamId || null);
+
+    useEffect(() => {
+        if (teams && teams.length > 0 && !localTeamId) {
+            setLocalTeamId(teams[0].id);
+        }
+    }, [teams, localTeamId]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -15,7 +24,7 @@ const InviteMemberModal = ({ isOpen, onClose, teamId }) => {
         setLoading(true);
 
         try {
-            await invitesAPI.sendInvitation(email, teamId);
+            await invitesAPI.sendInvitation(email, localTeamId);
             setSuccess(true);
             setTimeout(() => {
                 handleClose();
@@ -32,6 +41,13 @@ const InviteMemberModal = ({ isOpen, onClose, teamId }) => {
         setError('');
         setSuccess(false);
         onClose();
+    };
+
+    const handleTeamChange = (teamId) => {
+        setLocalTeamId(teamId);
+        if (onTeamChange) {
+            onTeamChange(teamId);
+        }
     };
 
     return (
@@ -79,7 +95,7 @@ const InviteMemberModal = ({ isOpen, onClose, teamId }) => {
                                     <div className="flex items-center gap-4">
                                         <div
                                             className="w-12 h-12 rounded-xl flex items-center justify-center"
-                                            style={{ backgroundColor: 'var(--color-success)' }}
+                                            style={{ backgroundColor: 'var(--color-primary)' }}
                                         >
                                             <Send className="w-6 h-6 text-white" />
                                         </div>
@@ -109,6 +125,22 @@ const InviteMemberModal = ({ isOpen, onClose, teamId }) => {
 
                                     {/* Form */}
                                     <form onSubmit={handleSubmit} className="space-y-4">
+                                        {/* Team Selection */}
+                                        {teams && teams.length > 0 && (
+                                            <div className="form-group">
+                                                <label className="form-label">Select Team</label>
+                                                <select
+                                                    value={localTeamId || ''}
+                                                    onChange={(e) => handleTeamChange(parseInt(e.target.value))}
+                                                    className="input"
+                                                >
+                                                    {teams.map(team => (
+                                                        <option key={team.id} value={team.id}>{team.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+
                                         <div className="form-group">
                                             <label className="form-label">Email Address *</label>
                                             <div className="relative">
@@ -144,8 +176,8 @@ const InviteMemberModal = ({ isOpen, onClose, teamId }) => {
                                             </button>
                                             <button
                                                 type="submit"
-                                                disabled={loading || !email.trim()}
-                                                className="btn btn-success flex-1"
+                                                disabled={loading || !email.trim() || !localTeamId}
+                                                className="btn btn-primary flex-1"
                                             >
                                                 {loading ? (
                                                     <>

@@ -330,23 +330,30 @@ export const verifyInvite = async (req, res, next) => {
     const existingUser = await UserModel.findByEmail(invite.email);
     const userExists = !!existingUser;
 
+    // Fetch team details to get the team name
+    const team = await TeamModel.findById(invite.team_id);
+    const teamName = team ? team.name : 'Unknown Team';
+
     Logger.debug('Invite token verified', {
       inviteId: invite.id,
       email: invite.email,
       teamId: invite.team_id,
+      teamName,
       userExists,
     });
 
+    // Return response in 'data' object structure that frontend expects
     return res.status(200).json({
       success: true,
       message: 'Invitation token is valid',
-      invite: {
+      data: {
         token: inviteToken,
         email: invite.email,
         teamId: invite.team_id,
+        teamName: teamName,
         expiresAt: invite.expires_at,
+        userExists, // Frontend uses this to decide signup flow
       },
-      userExists, // Frontend uses this to decide signup flow
     });
 
   } catch (error) {
