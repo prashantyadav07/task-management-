@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js'; // Import database connection
 import initializeDatabase from './config/init-db.js'; // Import database schema initialization (FIX #1 & #2)
+import { bootstrapAdminUser } from './config/admin-bootstrap.js'; // Import admin bootstrap logic
 import { Logger } from './utils/logger.js'; // Import logger
 import app from './app.js';
 
@@ -29,35 +30,27 @@ const startServer = async () => {
       throw new Error('Cannot start server without database connection');
     }
     
-    // CRITICAL FIX #1 & #2: Initialize database schema
-    // Creates all required tables and constraints (including UNIQUE email constraint)
+    // Initialize database schema
     try {
       await initializeDatabase();
-      console.log('✅ Database schema verified/initialized');
+      console.log('✅ Database schema initialized');
     } catch (initError) {
-      Logger.error('Database schema initialization warning', initError);
+      Logger.error('Database schema initialization failed', initError);
       console.log('⚠️  Database schema may need manual initialization');
-      // Continue anyway - tables might already exist
     }
-    
-    // SMTP Email Service
-    const { transporter } = await import('./config/mail.js');
+
+    // Bootstrap admin user
     try {
-      await new Promise((resolve, reject) => {
-        transporter.verify((error) => {
-          if (error) reject(error);
-          else resolve();
-        });
-      });
-      console.log('✅ SMTP email service ready');
-    } catch (smtpError) {
-      Logger.error('SMTP configuration warning', smtpError);
+      await bootstrapAdminUser();
+      console.log('✅ Admin user verified');
+    } catch (adminError) {
+      Logger.error('Admin bootstrap failed', adminError);
+      console.log('⚠️  Admin user may need manual creation');
     }
     
     // Start Server
     const server = app.listen(PORT, () => {
-      console.log('✅ Server started successfully');
-      console.log('✅ Backend running perfectly');
+      console.log('✅ Server started on port ' + PORT);
     });
 
     // Graceful Shutdown

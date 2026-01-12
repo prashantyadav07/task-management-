@@ -22,7 +22,6 @@ const initializeDatabase = async () => {
 
     // FIX #1: Users table with UNIQUE constraint on email
     // This prevents duplicate email registration at the database level
-    Logger.info('Creating users table (if not exists)...');
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -38,7 +37,6 @@ const initializeDatabase = async () => {
     `);
 
     // FIX #2: Teams table
-    Logger.info('Creating teams table (if not exists)...');
     await client.query(`
       CREATE TABLE IF NOT EXISTS teams (
         id SERIAL PRIMARY KEY,
@@ -53,7 +51,6 @@ const initializeDatabase = async () => {
     `);
 
     // FIX #2: Team members table
-    Logger.info('Creating team_members table (if not exists)...');
     await client.query(`
       CREATE TABLE IF NOT EXISTS team_members (
         id SERIAL PRIMARY KEY,
@@ -70,7 +67,6 @@ const initializeDatabase = async () => {
     `);
 
     // FIX #2: Tasks table
-    Logger.info('Creating tasks table (if not exists)...');
     await client.query(`
       CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
@@ -98,7 +94,6 @@ const initializeDatabase = async () => {
     `);
 
     // FIX #2: Invites table
-    Logger.info('Creating invites table (if not exists)...');
     await client.query(`
       CREATE TABLE IF NOT EXISTS invites (
         id SERIAL PRIMARY KEY,
@@ -118,11 +113,10 @@ const initializeDatabase = async () => {
     `);
 
     await client.query('COMMIT');
-    Logger.info('✅ Database schema initialized successfully');
     return true;
   } catch (error) {
     await client.query('ROLLBACK');
-    Logger.error('❌ Failed to initialize database schema', error);
+    Logger.error('Database schema initialization failed', error);
     throw error;
   } finally {
     client.release();

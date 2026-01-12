@@ -55,3 +55,9 @@ export const requireRole = (allowedRoles) => {
     }
   };
 };
+
+/**
+ * Shorthand middleware to require ADMIN role
+ * Must be used after authenticateToken middleware
+ */
+export const authorizeAdmin = requireRole(['ADMIN']);

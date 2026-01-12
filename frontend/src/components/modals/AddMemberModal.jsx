@@ -86,14 +86,14 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="modal-overlay">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={handleClose}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        className="absolute inset-0"
                     />
 
                     {/* Modal */}
@@ -101,122 +101,134 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-lg mx-4 glass rounded-2xl p-6 max-h-[90vh] overflow-hidden flex flex-col"
+                        className="modal-content relative"
+                        style={{ maxWidth: '32rem', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
                     >
-                        {/* Close Button */}
-                        <button
-                            onClick={handleClose}
-                            className="absolute right-4 top-4 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-
                         {/* Header */}
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
-                                <UserPlus className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-white">Add Member</h2>
-                                <p className="text-sm text-slate-400">Add an existing platform user to this team</p>
-                            </div>
-                        </div>
-
-                        {/* Error */}
-                        {error && (
-                            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 text-red-400" />
-                                <p className="text-sm text-red-400">{error}</p>
-                            </div>
-                        )}
-
-                        {/* Success */}
-                        {success && (
-                            <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                                <p className="text-sm text-emerald-400">{success}</p>
-                            </div>
-                        )}
-
-                        {/* Search */}
-                        <div className="relative mb-4">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search users by name or email..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="input pl-12"
-                            />
-                        </div>
-
-                        {/* User List */}
-                        <div className="flex-1 overflow-y-auto max-h-60 space-y-2 mb-4">
-                            {loading ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
+                        <div className="modal-header">
+                            <div className="flex items-center gap-4">
+                                <div
+                                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                                    style={{ backgroundColor: 'var(--color-success)' }}
+                                >
+                                    <UserPlus className="w-6 h-6 text-white" />
                                 </div>
-                            ) : filteredUsers.length > 0 ? (
-                                filteredUsers.map((user) => (
-                                    <button
-                                        key={user.id}
-                                        onClick={() => setSelectedUserId(user.id)}
-                                        className={`w-full p-3 rounded-xl border transition-all flex items-center gap-3 text-left ${selectedUserId === user.id
-                                                ? 'bg-violet-500/20 border-violet-500/50'
-                                                : 'bg-slate-800/50 border-slate-700/50 hover:border-slate-600'
-                                            }`}
-                                    >
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                                            <User className="w-5 h-5 text-white" />
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <p className="font-medium text-white truncate">{user.name}</p>
-                                            <p className="text-xs text-slate-400 truncate">{user.email}</p>
-                                        </div>
-                                        <span className={`text-xs px-2 py-1 rounded-full ${user.role === 'ADMIN'
-                                                ? 'bg-violet-500/20 text-violet-400'
-                                                : 'bg-cyan-500/20 text-cyan-400'
-                                            }`}>
-                                            {user.role}
-                                        </span>
-                                    </button>
-                                ))
-                            ) : (
-                                <div className="text-center py-8">
-                                    <Users className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-                                    <p className="text-slate-400 text-sm">
-                                        {searchQuery ? 'No users match your search' : 'All users are already members'}
-                                    </p>
+                                <div>
+                                    <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Add Member</h2>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Add an existing platform user to this team</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleClose}
+                                className="p-2 rounded-lg transition-colors"
+                                style={{ color: 'var(--text-muted)' }}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="modal-body flex-1 overflow-hidden flex flex-col">
+                            {/* Error */}
+                            {error && (
+                                <div className="alert alert-danger mb-4">
+                                    <AlertCircle className="w-4 h-4" />
+                                    <p className="text-sm">{error}</p>
                                 </div>
                             )}
-                        </div>
 
-                        {/* Actions */}
-                        <div className="flex gap-3 pt-2 border-t border-slate-700/50">
-                            <button
-                                type="button"
-                                onClick={handleClose}
-                                className="btn btn-secondary flex-1"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSubmit}
-                                disabled={submitting || !selectedUserId}
-                                className="btn btn-primary flex-1"
-                            >
-                                {submitting ? (
-                                    <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                        Adding...
-                                    </>
+                            {/* Success */}
+                            {success && (
+                                <div className="alert alert-success mb-4">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <p className="text-sm">{success}</p>
+                                </div>
+                            )}
+
+                            {/* Search */}
+                            <div className="relative mb-4">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Search users by name or email..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="input"
+                                    style={{ paddingLeft: '3rem' }}
+                                />
+                            </div>
+
+                            {/* User List */}
+                            <div className="flex-1 overflow-y-auto space-y-2 mb-4" style={{ maxHeight: '15rem' }}>
+                                {loading ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <div className="loading-spinner" style={{ width: '1.5rem', height: '1.5rem' }}></div>
+                                    </div>
+                                ) : filteredUsers.length > 0 ? (
+                                    filteredUsers.map((user) => (
+                                        <button
+                                            key={user.id}
+                                            onClick={() => setSelectedUserId(user.id)}
+                                            className="w-full p-3 rounded-xl transition-all flex items-center gap-3 text-left"
+                                            style={{
+                                                backgroundColor: selectedUserId === user.id ? 'var(--color-primary-subtle)' : 'var(--bg-secondary)',
+                                                border: selectedUserId === user.id ? '1px solid var(--color-primary)' : '1px solid var(--border-color)'
+                                            }}
+                                        >
+                                            <div
+                                                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                                                style={{ backgroundColor: 'var(--color-primary)' }}
+                                            >
+                                                <User className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div className="flex-1 overflow-hidden">
+                                                <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user.name}</p>
+                                                <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+                                            </div>
+                                            <span className={`badge ${user.role === 'ADMIN' ? 'badge-primary' : 'badge-info'}`}>
+                                                {user.role}
+                                            </span>
+                                        </button>
+                                    ))
                                 ) : (
-                                    <>
-                                        <UserPlus className="w-5 h-5" />
-                                        Add to Team
-                                    </>
+                                    <div className="empty-state py-8">
+                                        <div className="empty-state-icon">
+                                            <Users className="w-8 h-8" />
+                                        </div>
+                                        <p className="empty-state-title text-sm">
+                                            {searchQuery ? 'No users match your search' : 'All users are already members'}
+                                        </p>
+                                    </div>
                                 )}
-                            </button>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+                                <button
+                                    type="button"
+                                    onClick={handleClose}
+                                    className="btn btn-secondary flex-1"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={submitting || !selectedUserId}
+                                    className="btn btn-primary flex-1"
+                                >
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Adding...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <UserPlus className="w-5 h-5" />
+                                            Add to Team
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
                 </div>

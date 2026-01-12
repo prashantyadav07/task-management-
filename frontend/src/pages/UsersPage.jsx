@@ -70,18 +70,23 @@ const UsersPage = () => {
 
     const getRoleBadge = (role) => {
         if (role === 'ADMIN') {
-            return 'bg-violet-500/20 text-violet-400';
+            return 'badge-primary';
         }
-        return 'bg-cyan-500/20 text-cyan-400';
+        return 'badge-info';
     };
 
     // Access denied for non-admins
     if (!isAdmin) {
         return (
             <div className="flex flex-col items-center justify-center h-[60vh]">
-                <Shield className="w-16 h-16 text-red-400 mb-4" />
-                <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-                <p className="text-slate-400">You need admin privileges to access this page.</p>
+                <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
+                    style={{ backgroundColor: 'var(--color-danger-light)' }}
+                >
+                    <Shield className="w-10 h-10" style={{ color: 'var(--color-danger)' }} />
+                </div>
+                <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Access Denied</h2>
+                <p style={{ color: 'var(--text-secondary)' }}>You need admin privileges to access this page.</p>
             </div>
         );
     }
@@ -89,7 +94,7 @@ const UsersPage = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
-                <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+                <div className="loading-spinner" style={{ width: '2rem', height: '2rem' }}></div>
             </div>
         );
     }
@@ -97,10 +102,10 @@ const UsersPage = () => {
     return (
         <div className="animate-fade-in">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="page-header mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">User Management</h1>
-                    <p className="text-slate-400 mt-1">
+                    <h1 className="page-title">User Management</h1>
+                    <p className="page-subtitle">
                         {userCount} registered {userCount === 1 ? 'user' : 'users'} on the platform
                     </p>
                 </div>
@@ -108,13 +113,14 @@ const UsersPage = () => {
                 <div className="flex items-center gap-4">
                     {/* Search */}
                     <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                         <input
                             type="text"
                             placeholder="Search users..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="input pl-12 w-64"
+                            className="input"
+                            style={{ paddingLeft: '3rem', width: '16rem' }}
                         />
                     </div>
                 </div>
@@ -124,33 +130,40 @@ const UsersPage = () => {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="card mb-8 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border-violet-500/30"
+                className="card mb-8"
+                style={{ backgroundColor: 'var(--color-primary-subtle)', border: '1px solid var(--color-primary)' }}
             >
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
+                    <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                        style={{ backgroundColor: 'var(--color-primary)' }}
+                    >
                         <Users className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                        <p className="text-slate-400 text-sm">Total Users</p>
-                        <p className="text-4xl font-bold text-white">{userCount}</p>
+                        <p style={{ color: 'var(--text-secondary)' }} className="text-sm">Total Users</p>
+                        <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{userCount}</p>
                     </div>
                 </div>
             </motion.div>
 
             {/* Users Grid */}
             {filteredUsers.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid-cards">
                     {filteredUsers.map((user, index) => (
                         <motion.div
                             key={user.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
-                            className="card group hover:border-violet-500/50 transition-all duration-300"
+                            className="card card-hover"
                         >
                             {/* User Avatar & Role */}
                             <div className="flex items-start justify-between mb-4">
-                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center">
+                                <div
+                                    className="w-14 h-14 rounded-full flex items-center justify-center"
+                                    style={{ backgroundColor: 'var(--color-primary)' }}
+                                >
                                     <User className="w-7 h-7 text-white" />
                                 </div>
                                 <span className={`badge ${getRoleBadge(user.role)}`}>
@@ -159,22 +172,22 @@ const UsersPage = () => {
                             </div>
 
                             {/* User Info */}
-                            <h3 className="text-xl font-semibold text-white mb-1">
+                            <h3 className="text-xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
                                 {user.name}
                             </h3>
-                            <div className="flex items-center gap-2 text-slate-400 text-sm mb-2">
+                            <div className="flex items-center gap-2 text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
                                 <Mail className="w-4 h-4" />
                                 <span className="truncate">{user.email}</span>
                             </div>
                             {user.created_at && (
-                                <div className="flex items-center gap-2 text-slate-500 text-xs">
+                                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                                     <Calendar className="w-3.5 h-3.5" />
                                     <span>Joined {new Date(user.created_at).toLocaleDateString()}</span>
                                 </div>
                             )}
 
                             {/* Actions */}
-                            <div className="mt-4 pt-4 border-t border-slate-700/50 flex gap-2">
+                            <div className="mt-4 pt-4 flex gap-2" style={{ borderTop: '1px solid var(--border-color)' }}>
                                 <button
                                     onClick={() => handleViewDetails(user)}
                                     className="btn btn-secondary flex-1 text-sm py-2"
@@ -197,15 +210,15 @@ const UsersPage = () => {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-center py-20"
+                    className="empty-state py-20"
                 >
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-slate-800/50 flex items-center justify-center">
-                        <UserCog className="w-10 h-10 text-slate-600" />
+                    <div className="empty-state-icon">
+                        <UserCog className="w-10 h-10" />
                     </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">
+                    <p className="empty-state-title">
                         {searchQuery ? 'No users found' : 'No users yet'}
-                    </h3>
-                    <p className="text-slate-400">
+                    </p>
+                    <p className="empty-state-description">
                         {searchQuery
                             ? 'Try adjusting your search query'
                             : 'Users will appear here when they register'

@@ -45,7 +45,7 @@ const TeamsPage = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
-                <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+                <div className="loading-spinner" style={{ width: '2rem', height: '2rem' }}></div>
             </div>
         );
     }
@@ -53,22 +53,23 @@ const TeamsPage = () => {
     return (
         <div className="animate-fade-in">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="page-header mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Teams</h1>
-                    <p className="text-slate-400 mt-1">Manage your team workspace</p>
+                    <h1 className="page-title">Teams</h1>
+                    <p className="page-subtitle">Manage your team workspace</p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
                     {/* Search */}
                     <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                         <input
                             type="text"
                             placeholder="Search teams..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="input pl-12 w-64"
+                            className="input"
+                            style={{ paddingLeft: '3rem', width: '16rem' }}
                         />
                     </div>
 
@@ -87,7 +88,7 @@ const TeamsPage = () => {
 
             {/* Teams Grid */}
             {filteredTeams.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid-cards">
                     {filteredTeams.map((team, index) => (
                         <motion.div
                             key={team.id}
@@ -97,27 +98,39 @@ const TeamsPage = () => {
                         >
                             <Link
                                 to={`/teams/${team.id}`}
-                                className="block card group hover:border-violet-500/50 transition-all duration-300"
+                                className="card card-hover block transition-all duration-200"
                             >
                                 <div className="flex items-start justify-between mb-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
+                                    <div
+                                        className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                                        style={{ backgroundColor: 'var(--color-primary)' }}
+                                    >
                                         <Users className="w-7 h-7 text-white" />
                                     </div>
-                                    <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-violet-400 transition-colors" />
+                                    <ChevronRight className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                                 </div>
 
-                                <h3 className="text-xl font-semibold text-white group-hover:text-violet-400 transition-colors mb-2">
+                                <h3
+                                    className="text-xl font-semibold mb-2"
+                                    style={{ color: 'var(--text-primary)' }}
+                                >
                                     {team.name}
                                 </h3>
 
                                 {team.description && (
-                                    <p className="text-slate-400 text-sm line-clamp-2">
+                                    <p
+                                        className="text-sm line-clamp-2"
+                                        style={{ color: 'var(--text-secondary)' }}
+                                    >
                                         {team.description}
                                     </p>
                                 )}
 
-                                <div className="mt-4 pt-4 border-t border-slate-700/50">
-                                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                                <div
+                                    className="mt-4 pt-4"
+                                    style={{ borderTop: '1px solid var(--border-color)' }}
+                                >
+                                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
                                         <Users className="w-4 h-4" />
                                         <span>View Members</span>
                                     </div>
@@ -130,15 +143,15 @@ const TeamsPage = () => {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-center py-20"
+                    className="empty-state py-20"
                 >
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-slate-800/50 flex items-center justify-center">
-                        <Users className="w-10 h-10 text-slate-600" />
+                    <div className="empty-state-icon">
+                        <Users className="w-10 h-10" />
                     </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">
+                    <p className="empty-state-title">
                         {searchQuery ? 'No teams found' : 'No teams yet'}
-                    </h3>
-                    <p className="text-slate-400 mb-6">
+                    </p>
+                    <p className="empty-state-description">
                         {searchQuery
                             ? 'Try adjusting your search query'
                             : isAdmin
@@ -149,7 +162,7 @@ const TeamsPage = () => {
                     {isAdmin && !searchQuery && (
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="btn btn-primary"
+                            className="btn btn-primary mt-6"
                         >
                             <Plus className="w-5 h-5" />
                             Create Your First Team

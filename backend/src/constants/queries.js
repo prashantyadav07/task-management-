@@ -34,6 +34,98 @@ const QUERIES = {
     FIND_BY_TOKEN: 'SELECT * FROM invites WHERE token = $1',
     UPDATE_STATUS_USED: 'UPDATE invites SET status = $1, accepted_at = NOW() WHERE id = $2 RETURNING *',
     DELETE_EXPIRED: 'DELETE FROM invites WHERE expires_at < NOW()'
+  },
+  ANALYTICS: {
+    // Total tasks across all teams
+    GET_TOTAL_TASKS: 'SELECT COUNT(*) as total_tasks FROM tasks',
+    
+    // Total assigned users (distinct users assigned at least one task)
+    GET_ASSIGNED_USERS_COUNT: 'SELECT COUNT(DISTINCT assigned_to_user_id) as assigned_users FROM tasks',
+    
+    // Total in-progress tasks
+    GET_IN_PROGRESS_TASKS: 'SELECT COUNT(*) as in_progress_tasks FROM tasks WHERE status = $1',
+    
+    // Total completed tasks
+    GET_COMPLETED_TASKS: 'SELECT COUNT(*) as completed_tasks FROM tasks WHERE status = $1',
+    
+    // Tasks with completion timestamps
+    GET_COMPLETED_TASKS_WITH_TIMESTAMPS: `
+      SELECT 
+        id,
+        title,
+        assigned_to_user_id,
+        assigned_by_user_id,
+        team_id,
+        started_at,
+        completed_at,
+        EXTRACT(EPOCH FROM (completed_at - started_at))/60 as duration_minutes,
+        created_at
+      FROM tasks
+      WHERE status = $1
+      ORDER BY completed_at DESC
+    `,
+    
+    // Recent tasks (last N tasks)
+    GET_RECENT_TASKS: `
+      SELECT 
+        id,
+        title,
+        description,
+        status,
+        assigned_to_user_id,
+        assigned_by_user_id,
+        team_id,
+        assigned_at,
+        started_at,
+        completed_at,
+        due_date
+      FROM tasks
+      ORDER BY assigned_at DESC
+      LIMIT $1
+    `,
+    
+    // Task statistics for a specific team
+    GET_TEAM_TASK_STATS: `
+      SELECT 
+        COUNT(*) as total_tasks,
+        SUM(CASE WHEN status = 'ASSIGNED' THEN 1 ELSE 0 END) as assigned_count,
+        SUM(CASE WHEN status = 'IN_PROGRESS' THEN 1 ELSE 0 END) as in_progress_count,
+        SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count
+      FROM tasks
+      WHERE team_id = $1
+    `,
+    
+    // User-specific task analytics
+    GET_USER_TASK_STATS: `
+      SELECT 
+        COUNT(*) as total_assigned,
+        SUM(CASE WHEN status = 'ASSIGNED' THEN 1 ELSE 0 END) as assigned_count,
+        SUM(CASE WHEN status = 'IN_PROGRESS' THEN 1 ELSE 0 END) as in_progress_count,
+        SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count
+      FROM tasks
+      WHERE assigned_to_user_id = $1
+    `,
+    
+    // Average task completion time
+    GET_AVERAGE_COMPLETION_TIME: `
+      SELECT 
+        AVG(EXTRACT(EPOCH FROM (completed_at - started_at))/60) as avg_duration_minutes
+      FROM tasks
+      WHERE status = $1 AND completed_at IS NOT NULL
+    `,
+    
+    // Task completion rate
+    GET_COMPLETION_RATE: `
+      SELECT 
+        COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed_tasks,
+        COUNT(*) as total_tasks,
+        ROUND(
+          COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END)::numeric / 
+          NULLIF(COUNT(*)::numeric, 0) * 100, 
+          2
+        ) as completion_rate_percentage
+      FROM tasks
+    `
   }
 };
 

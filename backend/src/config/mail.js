@@ -1,7 +1,12 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { Logger } from '../utils/logger.js';
 
+// Suppress dotenv logs
+const originalLog = console.log;
+console.log = () => {};
 dotenv.config();
+console.log = originalLog;
 
 // Configure the Nodemailer transporter using SMTP settings
 const transporter = nodemailer.createTransport({
@@ -17,9 +22,10 @@ const transporter = nodemailer.createTransport({
 // Verify transporter configuration
 transporter.verify((error) => {
   if (error) {
-    // Silently fail SMTP verification - errors will be caught when sending mail
+    Logger.error('SMTP service failed to initialize', error);
+  } else {
+    console.log('✅ SMTP service ready');
   }
-  // Success is handled in server startup
 });
 
 export { transporter };

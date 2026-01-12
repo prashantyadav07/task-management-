@@ -35,14 +35,14 @@ const CreateTeamModal = ({ isOpen, onClose, onTeamCreated }) => {
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="modal-overlay">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={handleClose}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        className="absolute inset-0"
                     />
 
                     {/* Modal */}
@@ -50,93 +50,98 @@ const CreateTeamModal = ({ isOpen, onClose, onTeamCreated }) => {
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-md mx-4 glass rounded-2xl p-6"
+                        className="modal-content relative"
                     >
-                        {/* Close Button */}
-                        <button
-                            onClick={handleClose}
-                            className="absolute right-4 top-4 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-
                         {/* Header */}
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
-                                <Users className="w-6 h-6 text-white" />
+                        <div className="modal-header">
+                            <div className="flex items-center gap-4">
+                                <div
+                                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                                    style={{ backgroundColor: 'var(--color-primary)' }}
+                                >
+                                    <Users className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Create Team</h2>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Add a new team to your workspace</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-white">Create Team</h2>
-                                <p className="text-sm text-slate-400">Add a new team to your workspace</p>
-                            </div>
+                            <button
+                                onClick={handleClose}
+                                className="p-2 rounded-lg transition-colors"
+                                style={{ color: 'var(--text-muted)' }}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
 
-                        {/* Error */}
-                        {error && (
-                            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 text-red-400" />
-                                <p className="text-sm text-red-400">{error}</p>
-                            </div>
-                        )}
-
-                        {/* Form */}
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Team Name *
-                                </label>
-                                <div className="relative">
-                                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        className="input pl-12"
-                                        placeholder="Development Team"
-                                        required
-                                    />
+                        {/* Body */}
+                        <div className="modal-body">
+                            {/* Error */}
+                            {error && (
+                                <div className="alert alert-danger mb-4">
+                                    <AlertCircle className="w-4 h-4" />
+                                    <p className="text-sm">{error}</p>
                                 </div>
-                            </div>
+                            )}
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Description
-                                </label>
-                                <div className="relative">
-                                    <FileText className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
-                                    <textarea
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        className="input pl-12 min-h-[100px] resize-none"
-                                        placeholder="Team for development work..."
-                                    />
+                            {/* Form */}
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="form-group">
+                                    <label className="form-label">Team Name *</label>
+                                    <div className="relative">
+                                        <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                                        <input
+                                            type="text"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            className="input"
+                                            style={{ paddingLeft: '3rem' }}
+                                            placeholder="Development Team"
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={handleClose}
-                                    className="btn btn-secondary flex-1"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading || !name.trim()}
-                                    className="btn btn-primary flex-1"
-                                >
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                            Creating...
-                                        </>
-                                    ) : (
-                                        'Create Team'
-                                    )}
-                                </button>
-                            </div>
-                        </form>
+                                <div className="form-group">
+                                    <label className="form-label">Description</label>
+                                    <div className="relative">
+                                        <FileText className="absolute left-4 top-3.5 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                                        <textarea
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            className="input"
+                                            style={{ paddingLeft: '3rem', minHeight: '100px', resize: 'none' }}
+                                            placeholder="Team for development work..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleClose}
+                                        className="btn btn-secondary flex-1"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading || !name.trim()}
+                                        className="btn btn-primary flex-1"
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                Creating...
+                                            </>
+                                        ) : (
+                                            'Create Team'
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </motion.div>
                 </div>
             )}

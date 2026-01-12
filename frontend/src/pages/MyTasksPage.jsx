@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import {
     CheckSquare,
     Loader2,
-    Filter,
     Clock,
     Play,
     CheckCircle
@@ -57,7 +56,7 @@ const MyTasksPage = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
-                <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+                <div className="loading-spinner" style={{ width: '2rem', height: '2rem' }}></div>
             </div>
         );
     }
@@ -66,8 +65,8 @@ const MyTasksPage = () => {
         <div className="animate-fade-in">
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white">My Tasks</h1>
-                <p className="text-slate-400 mt-1">View and manage tasks assigned to you</p>
+                <h1 className="page-title">My Tasks</h1>
+                <p className="page-subtitle">View and manage tasks assigned to you</p>
             </div>
 
             {/* Filters */}
@@ -76,17 +75,22 @@ const MyTasksPage = () => {
                     <button
                         key={option.value}
                         onClick={() => setFilter(option.value)}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${filter === option.value
-                                ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
-                                : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:border-slate-600'
-                            }`}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all"
+                        style={{
+                            backgroundColor: filter === option.value ? 'var(--color-primary-subtle)' : 'var(--bg-primary)',
+                            color: filter === option.value ? 'var(--color-primary)' : 'var(--text-secondary)',
+                            border: filter === option.value ? '1px solid var(--color-primary)' : '1px solid var(--border-color)'
+                        }}
                     >
                         <option.icon className="w-4 h-4" />
                         {option.label}
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${filter === option.value
-                                ? 'bg-violet-500/30 text-violet-300'
-                                : 'bg-slate-700 text-slate-400'
-                            }`}>
+                        <span
+                            className="px-2 py-0.5 rounded-full text-xs"
+                            style={{
+                                backgroundColor: filter === option.value ? 'var(--color-primary)' : 'var(--bg-tertiary)',
+                                color: filter === option.value ? '#fff' : 'var(--text-secondary)'
+                            }}
+                        >
                             {taskCounts[option.value]}
                         </span>
                     </button>
@@ -111,15 +115,15 @@ const MyTasksPage = () => {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-center py-20"
+                    className="empty-state py-20"
                 >
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-slate-800/50 flex items-center justify-center">
-                        <CheckSquare className="w-10 h-10 text-slate-600" />
+                    <div className="empty-state-icon">
+                        <CheckSquare className="w-10 h-10" />
                     </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">
+                    <p className="empty-state-title">
                         {filter === 'ALL' ? 'No tasks assigned' : `No ${filter.toLowerCase().replace('_', ' ')} tasks`}
-                    </h3>
-                    <p className="text-slate-400">
+                    </p>
+                    <p className="empty-state-description">
                         {filter === 'ALL'
                             ? 'Tasks assigned to you will appear here'
                             : 'Try selecting a different filter'}

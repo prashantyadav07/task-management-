@@ -71,19 +71,25 @@ const TaskCard = ({ task, onTaskUpdated }) => {
     const StatusIcon = statusConfig.icon;
 
     return (
-        <div className="card hover:border-violet-500/30 transition-all group">
+        <div className="card card-hover transition-all">
             {/* Header */}
             <div className="flex items-start justify-between gap-4 mb-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center group-hover:bg-violet-500/30 transition-colors">
-                        <CheckSquare className="w-5 h-5 text-violet-400" />
+                    <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+                        style={{ backgroundColor: 'var(--color-primary-subtle)' }}
+                    >
+                        <CheckSquare className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-white group-hover:text-violet-400 transition-colors">
+                        <h3
+                            className="font-semibold transition-colors"
+                            style={{ color: 'var(--text-primary)' }}
+                        >
                             {task.title}
                         </h3>
                         {task.team_name && (
-                            <p className="text-xs text-slate-500">{task.team_name}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{task.team_name}</p>
                         )}
                     </div>
                 </div>
@@ -95,13 +101,13 @@ const TaskCard = ({ task, onTaskUpdated }) => {
 
             {/* Description */}
             {task.description && (
-                <p className="text-slate-400 text-sm mb-4 line-clamp-2">
+                <p className="text-sm mb-4 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
                     {task.description}
                 </p>
             )}
 
             {/* Meta */}
-            <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
+            <div className="flex items-center gap-4 text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
                 {task.due_date && (
                     <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5" />
@@ -118,15 +124,15 @@ const TaskCard = ({ task, onTaskUpdated }) => {
 
             {/* Error */}
             {error && (
-                <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400" />
-                    <p className="text-xs text-red-400">{error}</p>
+                <div className="alert alert-danger mb-3 py-2 px-3">
+                    <AlertCircle className="w-4 h-4" />
+                    <p className="text-xs">{error}</p>
                 </div>
             )}
 
             {/* Actions - Only for assigned user */}
             {isAssignedToMe && task.status !== 'COMPLETED' && (
-                <div className="pt-3 border-t border-slate-700/50">
+                <div className="pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
                     {task.status === 'ASSIGNED' && (
                         <button
                             onClick={handleStartTask}
@@ -147,7 +153,7 @@ const TaskCard = ({ task, onTaskUpdated }) => {
                         <button
                             onClick={handleCompleteTask}
                             disabled={loading}
-                            className="btn w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white"
+                            className="btn btn-success w-full py-2.5"
                         >
                             {loading ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -164,12 +170,12 @@ const TaskCard = ({ task, onTaskUpdated }) => {
 
             {/* Completed Info */}
             {task.status === 'COMPLETED' && task.completed_at && (
-                <div className="pt-3 border-t border-slate-700/50">
-                    <p className="text-xs text-emerald-400 flex items-center gap-1.5">
+                <div className="pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                    <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--color-success)' }}>
                         <CheckCircle className="w-3.5 h-3.5" />
                         Completed on {new Date(task.completed_at).toLocaleDateString()}
                         {task.time_in_minutes && (
-                            <span className="text-slate-500 ml-2">
+                            <span style={{ color: 'var(--text-muted)' }} className="ml-2">
                                 ({Math.round(task.time_in_minutes)} mins)
                             </span>
                         )}

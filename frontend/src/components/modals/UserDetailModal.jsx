@@ -13,22 +13,22 @@ const UserDetailModal = ({ isOpen, onClose, user, onAssignTask }) => {
 
     const getRoleBadge = (role) => {
         if (role === 'ADMIN') {
-            return 'bg-violet-500/20 text-violet-400 border-violet-500/30';
+            return 'badge-primary';
         }
-        return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+        return 'badge-info';
     };
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="modal-overlay">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        className="absolute inset-0"
                     />
 
                     {/* Modal */}
@@ -36,44 +36,54 @@ const UserDetailModal = ({ isOpen, onClose, user, onAssignTask }) => {
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-md mx-4 glass rounded-2xl p-6"
+                        className="modal-content relative"
                     >
                         {/* Close Button */}
                         <button
                             onClick={onClose}
-                            className="absolute right-4 top-4 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                            className="absolute right-4 top-4 p-2 rounded-lg transition-colors"
+                            style={{ color: 'var(--text-muted)' }}
                         >
                             <X className="w-5 h-5" />
                         </button>
 
                         {/* User Avatar */}
-                        <div className="flex flex-col items-center text-center mb-6">
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center mb-4">
+                        <div className="flex flex-col items-center text-center mb-6 pt-4">
+                            <div
+                                className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
+                                style={{ backgroundColor: 'var(--color-primary)' }}
+                            >
                                 <User className="w-10 h-10 text-white" />
                             </div>
-                            <h2 className="text-2xl font-bold text-white">{user.name}</h2>
-                            <span className={`mt-2 px-3 py-1 rounded-full text-sm font-medium border ${getRoleBadge(user.role)}`}>
-                                <Shield className="w-3.5 h-3.5 inline mr-1" />
+                            <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{user.name}</h2>
+                            <span className={`mt-2 badge ${getRoleBadge(user.role)} flex items-center gap-1`}>
+                                <Shield className="w-3.5 h-3.5" />
                                 {user.role}
                             </span>
                         </div>
 
                         {/* User Details */}
-                        <div className="space-y-4 mb-6">
-                            <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl">
-                                <Mail className="w-5 h-5 text-slate-400" />
+                        <div className="space-y-3 mb-6">
+                            <div
+                                className="flex items-center gap-3 p-3 rounded-xl"
+                                style={{ backgroundColor: 'var(--bg-secondary)' }}
+                            >
+                                <Mail className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                                 <div>
-                                    <p className="text-xs text-slate-500">Email Address</p>
-                                    <p className="text-white">{user.email}</p>
+                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Email Address</p>
+                                    <p style={{ color: 'var(--text-primary)' }}>{user.email}</p>
                                 </div>
                             </div>
 
                             {user.created_at && (
-                                <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl">
-                                    <Calendar className="w-5 h-5 text-slate-400" />
+                                <div
+                                    className="flex items-center gap-3 p-3 rounded-xl"
+                                    style={{ backgroundColor: 'var(--bg-secondary)' }}
+                                >
+                                    <Calendar className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                                     <div>
-                                        <p className="text-xs text-slate-500">Member Since</p>
-                                        <p className="text-white">
+                                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Member Since</p>
+                                        <p style={{ color: 'var(--text-primary)' }}>
                                             {new Date(user.created_at).toLocaleDateString('en-US', {
                                                 year: 'numeric',
                                                 month: 'long',
@@ -84,11 +94,14 @@ const UserDetailModal = ({ isOpen, onClose, user, onAssignTask }) => {
                                 </div>
                             )}
 
-                            <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl">
-                                <Shield className="w-5 h-5 text-slate-400" />
+                            <div
+                                className="flex items-center gap-3 p-3 rounded-xl"
+                                style={{ backgroundColor: 'var(--bg-secondary)' }}
+                            >
+                                <Shield className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                                 <div>
-                                    <p className="text-xs text-slate-500">User ID</p>
-                                    <p className="text-white font-mono">#{user.id}</p>
+                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>User ID</p>
+                                    <p className="font-mono" style={{ color: 'var(--text-primary)' }}>#{user.id}</p>
                                 </div>
                             </div>
                         </div>

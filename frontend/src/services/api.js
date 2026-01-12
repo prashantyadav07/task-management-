@@ -77,4 +77,15 @@ export const usersAPI = {
   assignTaskBulk: (taskId, userIds) => api.post('/users/assign-task-bulk', { taskId, userIds }),
 };
 
+// Analytics API (Admin Only)
+export const analyticsAPI = {
+  getDashboardStats: () => api.get('/analytics/dashboard'),
+  getCompletedTasks: () => api.get('/analytics/completed-tasks'),
+  getRecentTasks: (limit = 10) => api.get(`/analytics/recent-tasks?limit=${limit}`),
+  getTeamStats: (teamId) => api.get(`/analytics/team/${teamId}`),
+  getUserStats: (userId) => api.get(`/analytics/user/${userId}`),
+  getCompletionTime: () => api.get('/analytics/completion-time'),
+  getCompletionRate: () => api.get('/analytics/completion-rate'),
+};
+
 export default api;

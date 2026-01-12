@@ -73,37 +73,37 @@ const DashboardPage = () => {
             label: 'Total Tasks',
             value: stats.total,
             icon: CheckSquare,
-            color: 'from-violet-500 to-purple-600',
-            bgColor: 'bg-violet-500/10'
+            bgColor: '#eff6ff',
+            iconColor: '#2563eb'
         },
         {
             label: 'Assigned',
             value: stats.assigned,
             icon: Clock,
-            color: 'from-blue-500 to-cyan-500',
-            bgColor: 'bg-blue-500/10'
+            bgColor: '#f0f9ff',
+            iconColor: '#0891b2'
         },
         {
             label: 'In Progress',
             value: stats.inProgress,
             icon: TrendingUp,
-            color: 'from-amber-500 to-orange-500',
-            bgColor: 'bg-amber-500/10'
+            bgColor: '#fef3c7',
+            iconColor: '#f59e0b'
         },
         {
             label: 'Completed',
             value: stats.completed,
             icon: CheckCircle2,
-            color: 'from-emerald-500 to-green-500',
-            bgColor: 'bg-emerald-500/10'
+            bgColor: '#dcfce7',
+            iconColor: '#22c55e'
         },
         // Admin-only: Total Users stat
         ...(isAdmin ? [{
             label: 'Total Users',
             value: userCount,
             icon: Users,
-            color: 'from-pink-500 to-rose-500',
-            bgColor: 'bg-pink-500/10',
+            bgColor: '#fce7f3',
+            iconColor: '#ec4899',
             link: '/users'
         }] : [])
     ];
@@ -120,7 +120,7 @@ const DashboardPage = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
-                <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+                <div className="loading-spinner" style={{ width: '2rem', height: '2rem' }}></div>
             </div>
         );
     }
@@ -133,32 +133,35 @@ const DashboardPage = () => {
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    <h1 className="text-3xl font-bold text-white mb-2">
-                        Welcome back, <span className="gradient-text">{user?.name}</span>
+                    <h1 className="text-2xl lg:text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                        Welcome back, <span className="text-gradient">{user?.name}</span>
                     </h1>
-                    <p className="text-slate-400">
+                    <p style={{ color: 'var(--text-secondary)' }}>
                         Here's what's happening with your tasks today.
                     </p>
                 </motion.div>
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6 mb-8">
                 {statCards.map((stat, index) => (
                     <motion.div
                         key={stat.label}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="card group hover:border-violet-500/50 transition-all duration-300"
+                        className="stat-card"
                     >
                         <div className="flex items-start justify-between">
                             <div>
-                                <p className="text-slate-400 text-sm mb-1">{stat.label}</p>
-                                <p className="text-4xl font-bold text-white">{stat.value}</p>
+                                <p className="stat-card-label">{stat.label}</p>
+                                <p className="stat-card-value">{stat.value}</p>
                             </div>
-                            <div className={`p-3 rounded-xl ${stat.bgColor}`}>
-                                <stat.icon className={`w-6 h-6 bg-gradient-to-r ${stat.color} bg-clip-text`} style={{ color: 'inherit' }} />
+                            <div
+                                className="stat-card-icon"
+                                style={{ backgroundColor: stat.bgColor }}
+                            >
+                                <stat.icon className="w-6 h-6" style={{ color: stat.iconColor }} />
                             </div>
                         </div>
                     </motion.div>
@@ -175,27 +178,38 @@ const DashboardPage = () => {
                     className="lg:col-span-2 card"
                 >
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold text-white">Recent Tasks</h2>
+                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            Recent Tasks
+                        </h2>
                         <Link
                             to="/my-tasks"
-                            className="text-sm text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors"
+                            className="text-sm flex items-center gap-1 transition-colors font-medium"
+                            style={{ color: 'var(--color-primary)' }}
                         >
                             View All <ArrowRight className="w-4 h-4" />
                         </Link>
                     </div>
 
                     {recentTasks.length > 0 ? (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {recentTasks.map((task) => (
                                 <div
                                     key={task.id}
-                                    className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-violet-500/30 transition-all"
+                                    className="p-4 rounded-xl transition-all hover:shadow-sm"
+                                    style={{
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        border: '1px solid var(--border-color)'
+                                    }}
                                 >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <h3 className="font-medium text-white mb-1">{task.title}</h3>
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                                                {task.title}
+                                            </h3>
                                             {task.description && (
-                                                <p className="text-sm text-slate-400 line-clamp-1">{task.description}</p>
+                                                <p className="text-sm line-clamp-1" style={{ color: 'var(--text-secondary)' }}>
+                                                    {task.description}
+                                                </p>
                                             )}
                                         </div>
                                         <span className={`badge ${getStatusBadge(task.status)}`}>
@@ -203,7 +217,7 @@ const DashboardPage = () => {
                                         </span>
                                     </div>
                                     {task.due_date && (
-                                        <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                                        <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                                             <Calendar className="w-3.5 h-3.5" />
                                             Due: {new Date(task.due_date).toLocaleDateString()}
                                         </div>
@@ -212,10 +226,12 @@ const DashboardPage = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-12">
-                            <CheckSquare className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                            <p className="text-slate-400">No tasks yet</p>
-                            <p className="text-sm text-slate-500 mt-1">
+                        <div className="empty-state">
+                            <div className="empty-state-icon">
+                                <CheckSquare className="w-8 h-8" />
+                            </div>
+                            <p className="empty-state-title">No tasks yet</p>
+                            <p className="empty-state-description">
                                 {isAdmin ? 'Create your first task to get started' : 'Tasks will appear here when assigned'}
                             </p>
                         </div>
@@ -230,10 +246,13 @@ const DashboardPage = () => {
                     className="card"
                 >
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold text-white">Your Teams</h2>
+                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            Your Teams
+                        </h2>
                         <Link
                             to="/teams"
-                            className="text-sm text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors"
+                            className="text-sm flex items-center gap-1 transition-colors font-medium"
+                            style={{ color: 'var(--color-primary)' }}
                         >
                             Manage <ArrowRight className="w-4 h-4" />
                         </Link>
@@ -245,18 +264,30 @@ const DashboardPage = () => {
                                 <Link
                                     key={team.id}
                                     to={`/teams/${team.id}`}
-                                    className="block p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-violet-500/30 transition-all group"
+                                    className="block p-4 rounded-xl transition-all hover:shadow-sm group"
+                                    style={{
+                                        backgroundColor: 'var(--bg-secondary)',
+                                        border: '1px solid var(--border-color)'
+                                    }}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
+                                        <div
+                                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                            style={{ backgroundColor: 'var(--color-primary)' }}
+                                        >
                                             <Users className="w-5 h-5 text-white" />
                                         </div>
-                                        <div>
-                                            <h3 className="font-medium text-white group-hover:text-violet-400 transition-colors">
+                                        <div className="flex-1 min-w-0">
+                                            <h3
+                                                className="font-medium transition-colors"
+                                                style={{ color: 'var(--text-primary)' }}
+                                            >
                                                 {team.name}
                                             </h3>
                                             {team.description && (
-                                                <p className="text-xs text-slate-400 line-clamp-1">{team.description}</p>
+                                                <p className="text-xs line-clamp-1" style={{ color: 'var(--text-secondary)' }}>
+                                                    {team.description}
+                                                </p>
                                             )}
                                         </div>
                                     </div>
@@ -264,10 +295,12 @@ const DashboardPage = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-12">
-                            <Users className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                            <p className="text-slate-400">No teams yet</p>
-                            <p className="text-sm text-slate-500 mt-1">
+                        <div className="empty-state">
+                            <div className="empty-state-icon">
+                                <Users className="w-8 h-8" />
+                            </div>
+                            <p className="empty-state-title">No teams yet</p>
+                            <p className="empty-state-description">
                                 {isAdmin ? 'Create a team to get started' : 'You\'ll be added to teams via invitations'}
                             </p>
                         </div>

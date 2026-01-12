@@ -65,7 +65,7 @@ const TeamDetailPage = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
-                <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+                <div className="loading-spinner" style={{ width: '2rem', height: '2rem' }}></div>
             </div>
         );
     }
@@ -73,8 +73,8 @@ const TeamDetailPage = () => {
     if (!team) {
         return (
             <div className="text-center py-20">
-                <h2 className="text-xl font-semibold text-white mb-2">Team not found</h2>
-                <Link to="/teams" className="text-violet-400 hover:text-violet-300">
+                <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Team not found</h2>
+                <Link to="/teams" style={{ color: 'var(--color-primary)' }}>
                     Back to Teams
                 </Link>
             </div>
@@ -86,9 +86,10 @@ const TeamDetailPage = () => {
             {/* Back Button */}
             <Link
                 to="/teams"
-                className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6"
+                className="inline-flex items-center gap-2 transition-colors mb-6 text-sm font-medium"
+                style={{ color: 'var(--text-secondary)' }}
             >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4" />
                 Back to Teams
             </Link>
 
@@ -96,19 +97,22 @@ const TeamDetailPage = () => {
             <div className="card mb-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
+                        <div
+                            className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                            style={{ backgroundColor: 'var(--color-primary)' }}
+                        >
                             <Users className="w-8 h-8 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-white">{team.name}</h1>
+                            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{team.name}</h1>
                             {team.description && (
-                                <p className="text-slate-400 mt-1">{team.description}</p>
+                                <p style={{ color: 'var(--text-secondary)' }} className="mt-1">{team.description}</p>
                             )}
                         </div>
                     </div>
 
                     {isAdmin && (
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                             <button
                                 onClick={() => setIsInviteModalOpen(true)}
                                 className="btn btn-secondary"
@@ -136,13 +140,11 @@ const TeamDetailPage = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-2 mb-6 border-b border-slate-700/50">
+            <div className="flex items-center gap-1 mb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <button
                     onClick={() => setActiveTab('members')}
-                    className={`px-4 py-3 font-medium transition-all relative ${activeTab === 'members'
-                        ? 'text-violet-400'
-                        : 'text-slate-400 hover:text-white'
-                        }`}
+                    className="px-4 py-3 font-medium transition-all relative"
+                    style={{ color: activeTab === 'members' ? 'var(--color-primary)' : 'var(--text-secondary)' }}
                 >
                     <span className="flex items-center gap-2">
                         <Users className="w-4 h-4" />
@@ -151,16 +153,15 @@ const TeamDetailPage = () => {
                     {activeTab === 'members' && (
                         <motion.div
                             layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500"
+                            className="absolute bottom-0 left-0 right-0 h-0.5"
+                            style={{ backgroundColor: 'var(--color-primary)' }}
                         />
                     )}
                 </button>
                 <button
                     onClick={() => setActiveTab('tasks')}
-                    className={`px-4 py-3 font-medium transition-all relative ${activeTab === 'tasks'
-                        ? 'text-violet-400'
-                        : 'text-slate-400 hover:text-white'
-                        }`}
+                    className="px-4 py-3 font-medium transition-all relative"
+                    style={{ color: activeTab === 'tasks' ? 'var(--color-primary)' : 'var(--text-secondary)' }}
                 >
                     <span className="flex items-center gap-2">
                         <CheckSquare className="w-4 h-4" />
@@ -169,7 +170,8 @@ const TeamDetailPage = () => {
                     {activeTab === 'tasks' && (
                         <motion.div
                             layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500"
+                            className="absolute bottom-0 left-0 right-0 h-0.5"
+                            style={{ backgroundColor: 'var(--color-primary)' }}
                         />
                     )}
                 </button>
@@ -177,7 +179,7 @@ const TeamDetailPage = () => {
 
             {/* Tab Content */}
             {activeTab === 'members' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid-cards">
                     {members.map((member, index) => (
                         <motion.div
                             key={member.id}
@@ -186,17 +188,22 @@ const TeamDetailPage = () => {
                             transition={{ delay: index * 0.05 }}
                             className="card flex items-center gap-4"
                         >
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                            <div
+                                className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: 'var(--color-primary)' }}
+                            >
                                 <User className="w-6 h-6 text-white" />
                             </div>
                             <div className="flex-1 overflow-hidden">
                                 <div className="flex items-center gap-2">
-                                    <p className="font-medium text-white truncate">{member.name}</p>
+                                    <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                                        {member.name}
+                                    </p>
                                     {member.id === team.owner_id && (
-                                        <Crown className="w-4 h-4 text-amber-400" />
+                                        <Crown className="w-4 h-4" style={{ color: 'var(--color-warning)' }} />
                                     )}
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-slate-400">
+                                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
                                     <Mail className="w-3.5 h-3.5" />
                                     <span className="truncate">{member.email}</span>
                                 </div>
@@ -225,9 +232,11 @@ const TeamDetailPage = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-12">
-                            <CheckSquare className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                            <p className="text-slate-400">No tasks in this team yet</p>
+                        <div className="empty-state py-12">
+                            <div className="empty-state-icon">
+                                <CheckSquare className="w-8 h-8" />
+                            </div>
+                            <p className="empty-state-title">No tasks in this team yet</p>
                             {isAdmin && (
                                 <button
                                     onClick={() => setIsCreateTaskModalOpen(true)}

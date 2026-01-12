@@ -7,7 +7,6 @@ import {
     LogOut,
     ChevronLeft,
     Menu,
-    Settings,
     User,
     UserCog
 } from 'lucide-react';
@@ -52,66 +51,64 @@ const Sidebar = () => {
         <motion.aside
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className={`fixed left-0 top-0 h-screen bg-slate-900/80 backdrop-blur-xl border-r border-slate-700/50 flex flex-col z-50 transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'
+            className={`sidebar fixed left-0 top-0 h-screen flex flex-col z-50 transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'
                 }`}
         >
             {/* Header */}
-            <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
                 {!collapsed && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="flex items-center gap-3"
                     >
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg">
                             <CheckSquare className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="font-bold text-white">TaskFlow</h1>
+                            <h1 className="font-bold text-white text-lg">TaskFlow</h1>
                             <p className="text-xs text-slate-400">Management</p>
                         </div>
                     </motion.div>
                 )}
                 <button
                     onClick={() => setCollapsed(!collapsed)}
-                    className="p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400 hover:text-white"
+                    className="p-2 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                    aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 >
                     {collapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
                 </button>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 p-4 space-y-2">
+            <nav className="flex-1 p-3 space-y-1">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.to}
                         to={item.to}
                         className={({ isActive }) =>
-                            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
-                                ? 'bg-violet-500/20 text-violet-400 shadow-lg shadow-violet-500/10'
-                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                            } ${collapsed ? 'justify-center' : ''}`
+                            `sidebar-link ${isActive ? 'active' : ''} ${collapsed ? 'justify-center px-3' : ''}`
                         }
                     >
                         <item.icon className="w-5 h-5 flex-shrink-0" />
-                        {!collapsed && <span className="font-medium">{item.label}</span>}
+                        {!collapsed && <span>{item.label}</span>}
                     </NavLink>
                 ))}
             </nav>
 
             {/* User Section */}
-            <div className="p-4 border-t border-slate-700/50">
+            <div className="p-4 border-t border-white/10">
                 {/* User Info */}
-                <div className={`flex items-center gap-3 mb-4 ${collapsed ? 'justify-center' : ''}`}>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                <div className={`flex items-center gap-3 mb-3 ${collapsed ? 'justify-center' : ''}`}>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">
                         <User className="w-5 h-5 text-white" />
                     </div>
                     {!collapsed && (
-                        <div className="overflow-hidden">
-                            <p className="font-medium text-white truncate">{user?.name}</p>
+                        <div className="overflow-hidden flex-1 min-w-0">
+                            <p className="font-medium text-white truncate text-sm">{user?.name}</p>
                             <p className="text-xs text-slate-400 truncate">{user?.email}</p>
                             {isAdmin && (
-                                <span className="inline-block mt-1 px-2 py-0.5 bg-violet-500/20 text-violet-400 text-xs rounded-full">
+                                <span className="inline-flex items-center mt-1 px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded-full font-medium">
                                     Admin
                                 </span>
                             )}
@@ -122,11 +119,11 @@ const Sidebar = () => {
                 {/* Logout Button */}
                 <button
                     onClick={handleLogout}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all ${collapsed ? 'justify-center' : ''
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-red-500/15 hover:text-red-400 transition-all text-sm font-medium ${collapsed ? 'justify-center' : ''
                         }`}
                 >
                     <LogOut className="w-5 h-5 flex-shrink-0" />
-                    {!collapsed && <span className="font-medium">Logout</span>}
+                    {!collapsed && <span>Logout</span>}
                 </button>
             </div>
         </motion.aside>
