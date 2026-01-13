@@ -1,9 +1,12 @@
 import axios from 'axios';
 
-// API Base URL - will automatically use correct URL based on environment
+// API Base URL - automatically detects environment
 const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5000/api'  // Local development
-  : 'https://task-management-ten-neon.vercel.app/api';  // Production
+  ? 'http://localhost:5000/api'
+  : 'https://task-management-ten-neon.vercel.app/api';
+
+console.log('🔗 API Base URL:', API_BASE_URL);
+console.log('🌐 Current hostname:', window.location.hostname);
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -11,6 +14,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds
 });
 
 // Request interceptor to add auth token
@@ -20,22 +24,37 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log(`📡 ${config.method.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
+    console.error('❌ Request error:', error);
     return Promise.reject(error);
   }
 );
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`✅ ${response.config.method.toUpperCase()} ${response.config.url} - ${response.status}`);
+    return response;
+  },
   (error) => {
+    const errorDetails = {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message
+    };
+    
+    console.error('❌ API Error:', errorDetails);
+
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
     return Promise.reject(error);
   }
 );

@@ -1,58 +1,105 @@
-import { transporter } from '../config/mail.js';
-import { Logger } from '../utils/logger.js';
-import { EmailServiceError } from '../utils/errors.js';
+import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
+import { connectDB } from './config/db.js';
+import initializeDatabase from './config/init-db.js';
+import { bootstrapAdminUser } from './config/admin-bootstrap.js';
+import { Logger } from './utils/logger.js';
+import app from './app.js';
 
+// Suppress dotenv startup logs
+const originalLog = console.log;
+console.log = () => {};
 dotenv.config();
+console.log = originalLog;
+
+const PORT = process.env.PORT || 5000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 /**
- * Send an invitation email
- * @param {string} toEmail - Recipient email address
- * @param {string} inviteLink - Invitation acceptance link
- * @throws {EmailServiceError}
+ * Start server with database connection verification
+ * Note: For Vercel, this only runs locally. Vercel uses app.js directly.
  */
-export const sendInviteEmail = async (toEmail, inviteLink) => {
+const startServer = async () => {
   try {
-    if (!process.env.SMTP_USER) {
-      Logger.error('SMTP configuration incomplete - SMTP_USER not set');
-      throw new EmailServiceError('Email service is not properly configured');
+    // Skip DB initialization on Vercel (serverless)
+    if (process.env.VERCEL !== '1') {
+      // Database Connection
+      try {
+        await connectDB();
+        console.log('✅ Database connected');
+      } catch (dbError) {
+        Logger.error('Database connection failed', dbError);
+        throw new Error('Cannot start server without database connection');
+      }
+      
+      // Initialize database schema
+      try {
+        await initializeDatabase();
+        console.log('✅ Database schema initialized');
+      } catch (initError) {
+        Logger.error('Database schema initialization failed', initError);
+        console.log('⚠️  Database schema may need manual initialization');
+      }
+
+      // Bootstrap admin user
+      try {
+        await bootstrapAdminUser();
+        console.log('✅ Admin user verified');
+      } catch (adminError) {
+        Logger.error('Admin bootstrap failed', adminError);
+        console.log('⚠️  Admin user may need manual creation');
+      }
     }
+    
+    // Start Server (only in local development)
+    if (NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
+      const server = app.listen(PORT, () => {
+        console.log('✅ Server started on port ' + PORT);
+        console.log(`📡 API available at http://localhost:${PORT}/api`);
+      });
 
-    const mailOptions = {
-      from: process.env.SMTP_USER,
-      to: toEmail,
-      subject: 'Task Management System - Team Invitation',
-      text: `You have been invited to join a team in the Task Management System. Click the link below to accept the invitation and set up your account:\n\n${inviteLink}\n\nThis link is valid for 24 hours.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Task Management System - Team Invitation</h2>
-          <p>You have been invited to join a team in the Task Management System.</p>
-          <p>Click the link below to accept the invitation and set up your account:</p>
-          <p>
-            <a href="${inviteLink}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              Accept Invitation
-            </a>
-          </p>
-          <p><em>This link is valid for 24 hours.</em></p>
-          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-          <p style="color: #666; font-size: 12px;">If you did not expect this invitation, please contact your team administrator.</p>
-        </div>
-      `,
-    };
+      // Graceful Shutdown
+      const shutdown = (signal) => {
+        Logger.info(`Received ${signal} signal, closing server gracefully`);
+        server.close(() => {
+          Logger.info('Server closed');
+          process.exit(0);
+        });
+      };
 
-    const info = await transporter.sendMail(mailOptions);
-
-    Logger.info('Invitation email sent successfully', {
-      messageId: info.messageId,
-      to: toEmail,
+      process.on('SIGTERM', () => shutdown('SIGTERM'));
+      process.on('SIGINT', () => shutdown('SIGINT'));
+    }
+    
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+      Logger.error('Uncaught exception', error);
+      if (NODE_ENV !== 'production') {
+        process.exit(1);
+      }
+    });
+    
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason) => {
+      Logger.error('Unhandled promise rejection', new Error(String(reason)));
+      if (NODE_ENV !== 'production') {
+        process.exit(1);
+      }
     });
 
-    return true;
-
   } catch (error) {
-    Logger.error('Failed to send invitation email', error, { toEmail });
-    throw new EmailServiceError('Failed to send invitation email', error);
+    Logger.error('Failed to start server', error);
+    if (NODE_ENV !== 'production') {
+      process.exit(1);
+    }
   }
 };
 
-export default { sendInviteEmail };
+// Only run startServer if not in Vercel environment
+if (process.env.VERCEL !== '1') {
+  startServer();
+}
+
+// Export for Vercel
+export default app;
