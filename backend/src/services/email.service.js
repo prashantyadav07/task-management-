@@ -1,3 +1,4 @@
+import nodemailer from 'nodemailer';
 import { Logger } from '../utils/logger.js';
 import dotenv from 'dotenv';
 
@@ -5,8 +6,27 @@ dotenv.config();
 
 /**
  * Email Service
- * Handles sending emails for the application (invitations, notifications, etc.)
+ * Handles sending emails for the application using Gmail SMTP
  */
+
+// Create reusable transporter with Gmail SMTP
+const createTransporter = () => {
+  // Check if email credentials are configured
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
+    Logger.warn('Email credentials not configured - emails will be logged only');
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_APP_PASSWORD
+    }
+  });
+};
+
+const transporter = createTransporter();
 
 /**
  * Send an email
@@ -19,21 +39,24 @@ dotenv.config();
  */
 export const sendEmail = async ({ to, subject, text, html }) => {
   try {
-    // In development, just log the email
-    if (process.env.NODE_ENV !== 'production') {
-      Logger.info(`Email would be sent to: ${to}`);
-      Logger.info(`Subject: ${subject}`);
-      Logger.info(`Body: ${text}`);
+    // If transporter is not configured, just log the email
+    if (!transporter) {
+      Logger.info(`[DEV MODE] Email would be sent to: ${to}`);
+      Logger.info(`[DEV MODE] Subject: ${subject}`);
+      Logger.info(`[DEV MODE] Body: ${text}`);
       return true;
     }
 
-    // TODO: Implement actual email sending with a service like:
-    // - Nodemailer with SMTP
-    // - SendGrid
-    // - AWS SES
-    // - Mailgun
+    const mailOptions = {
+      from: `"TaskFlow" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      text,
+      html
+    };
 
-    Logger.info(`Email sent to: ${to}`);
+    const info = await transporter.sendMail(mailOptions);
+    Logger.info(`Email sent successfully: ${info.messageId} to ${to}`);
     return true;
   } catch (error) {
     Logger.error('Failed to send email', error);
@@ -56,10 +79,16 @@ export const sendInvitationEmail = async (email, inviteToken, teamName) => {
     subject: `You've been invited to join ${teamName}`,
     text: `You have been invited to join the team "${teamName}". Click the link to accept: ${inviteUrl}`,
     html: `
-      <h2>Team Invitation</h2>
-      <p>You have been invited to join the team <strong>${teamName}</strong>.</p>
-      <p><a href="${inviteUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
-      <p>Or copy this link: ${inviteUrl}</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #10b981;">Team Invitation</h2>
+        <p>You have been invited to join the team <strong>${teamName}</strong>.</p>
+        <p style="margin: 24px 0;">
+          <a href="${inviteUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Accept Invitation</a>
+        </p>
+        <p style="color: #666; font-size: 14px;">Or copy this link: ${inviteUrl}</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+        <p style="color: #999; font-size: 12px;">This is an automated email from TaskFlow.</p>
+      </div>
     `
   });
 };
@@ -78,11 +107,15 @@ export const sendPasswordResetEmail = async (email, resetToken) => {
     subject: 'Password Reset Request',
     text: `You requested a password reset. Click the link to reset your password: ${resetUrl}`,
     html: `
-      <h2>Password Reset</h2>
-      <p>You requested a password reset.</p>
-      <p><a href="${resetUrl}" style="background-color: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
-      <p>Or copy this link: ${resetUrl}</p>
-      <p>If you didn't request this, please ignore this email.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #3b82f6;">Password Reset</h2>
+        <p>You requested a password reset.</p>
+        <p style="margin: 24px 0;">
+          <a href="${resetUrl}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+        </p>
+        <p style="color: #666; font-size: 14px;">Or copy this link: ${resetUrl}</p>
+        <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+      </div>
     `
   });
 };
@@ -99,10 +132,16 @@ export const sendInviteEmail = async (email, inviteUrl) => {
     subject: `You've been invited to join a team`,
     text: `You have been invited to join a team. Click the link to accept: ${inviteUrl}`,
     html: `
-      <h2>Team Invitation</h2>
-      <p>You have been invited to join a team.</p>
-      <p><a href="${inviteUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
-      <p>Or copy this link: ${inviteUrl}</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #10b981;">Team Invitation</h2>
+        <p>You have been invited to join a team.</p>
+        <p style="margin: 24px 0;">
+          <a href="${inviteUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Accept Invitation</a>
+        </p>
+        <p style="color: #666; font-size: 14px;">Or copy this link: ${inviteUrl}</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+        <p style="color: #999; font-size: 12px;">This is an automated email from TaskFlow.</p>
+      </div>
     `
   });
 };
