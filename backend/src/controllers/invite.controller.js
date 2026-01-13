@@ -1,6 +1,6 @@
 import InviteModel from '../models/invite.model.js';
 import TeamModel from '../models/team.model.js';
-import { sendInviteEmail } from '../services/email.service.js';
+import { sendInvitationEmail } from '../services/email.service.js';
 import { Logger } from '../utils/logger.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
 import { validateEmail, validateNumericId } from '../utils/validation.js';
@@ -42,13 +42,16 @@ export const sendInvitation = async (req, res, next) => {
     // Create the invitation record in the database
     const newInvite = await InviteModel.create(validatedEmail, validatedTeamId);
 
-    // Prepare the invitation link (frontend URL)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const inviteLink = `${frontendUrl}/accept-invite?token=${newInvite.token}`;
+    // Get the team name for the email
+    const team = await TeamModel.findById(validatedTeamId);
+    if (!team) {
+      throw new NotFoundError('Team not found');
+    }
 
     // Attempt to send the invitation email (non-blocking)
     try {
-      await sendInviteEmail(validatedEmail, inviteLink);
+      // Pass token instead of full URL - email service will construct the URL
+      await sendInvitationEmail(validatedEmail, newInvite.token, team.name);
       Logger.info('Invitation email sent successfully', { email: validatedEmail, teamId: validatedTeamId });
     } catch (emailError) {
       Logger.error('Failed to send invitation email', emailError, { email: validatedEmail });
