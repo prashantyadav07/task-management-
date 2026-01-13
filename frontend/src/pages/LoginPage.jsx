@@ -34,7 +34,7 @@ const LoginPage = () => {
     return (
         <div className="min-h-screen flex" style={{ backgroundColor: 'var(--bg-secondary)' }}>
             {/* Left Side - Branding */}
-            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 to-indigo-700 p-12 flex-col justify-between relative overflow-hidden">
+            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-700 to-emerald-600 p-12 flex-col justify-between relative overflow-hidden">
                 {/* Decorative Elements */}
                 <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -46,20 +46,20 @@ const LoginPage = () => {
                         </div>
                         <span className="text-2xl font-bold text-white">TaskFlow</span>
                     </div>
-                    <p className="text-blue-100 text-sm">Task Management System</p>
+                    <p className="text-green-100 text-sm">Task Management System</p>
                 </div>
 
                 <div className="relative z-10">
                     <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
                         Manage your tasks<br />with efficiency
                     </h2>
-                    <p className="text-blue-100 text-lg max-w-md">
+                    <p className="text-green-100 text-lg max-w-md">
                         Streamline your workflow, collaborate with teams, and track progress all in one place.
                     </p>
                 </div>
 
                 <div className="relative z-10">
-                    <p className="text-blue-200 text-sm">
+                    <p className="text-green-200 text-sm">
                         © 2026 TaskFlow. All rights reserved.
                     </p>
                 </div>
@@ -75,7 +75,7 @@ const LoginPage = () => {
                 >
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-700 to-emerald-600 flex items-center justify-center shadow-lg">
                             <CheckSquare className="w-6 h-6 text-white" />
                         </div>
                         <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>TaskFlow</span>

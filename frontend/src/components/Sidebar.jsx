@@ -57,7 +57,7 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
             icon: ClipboardList,
             label: 'Create Task',
             onClick: onCreateTask,
-            color: '#2563eb'
+            color: '#166534'
         },
         {
             icon: UserPlus,
@@ -69,7 +69,7 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
             icon: Send,
             label: 'Invite Member',
             onClick: onInviteMember,
-            color: '#8b5cf6'
+            color: '#059669'
         }
     ] : [];
 
@@ -81,25 +81,25 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
                 }`}
         >
             {/* Header */}
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                 {!collapsed && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="flex items-center gap-3"
                     >
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-600 to-emerald-500 flex items-center justify-center shadow-md">
                             <CheckSquare className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="font-bold text-white text-lg">TaskFlow</h1>
-                            <p className="text-xs text-slate-400">Management</p>
+                            <h1 className="font-bold text-gray-800 text-lg">TaskFlow</h1>
+                            <p className="text-xs text-gray-500">Management</p>
                         </div>
                     </motion.div>
                 )}
                 <button
                     onClick={() => setCollapsed(!collapsed)}
-                    className="p-2 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
                     aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 >
                     {collapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
@@ -108,9 +108,9 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
 
             {/* Quick Actions (Admin Only) */}
             {isAdmin && quickActions.length > 0 && (
-                <div className="p-3 border-b border-white/10">
+                <div className="p-3 border-b border-gray-200">
                     {!collapsed && (
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Quick Actions</p>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">Quick Actions</p>
                     )}
                     <div className="space-y-1">
                         {quickActions.map((action) => (
@@ -118,7 +118,7 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
                                 key={action.label}
                                 onClick={action.onClick}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium
-                                    hover:bg-white/10 text-slate-300 hover:text-white ${collapsed ? 'justify-center' : ''}`}
+                                    hover:bg-gray-100 text-gray-600 hover:text-gray-800 ${collapsed ? 'justify-center' : ''}`}
                             >
                                 <action.icon
                                     className="w-5 h-5 flex-shrink-0"
@@ -134,7 +134,7 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
             {/* Navigation */}
             <nav className="flex-1 p-3 space-y-1">
                 {!collapsed && (
-                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">Navigation</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">Navigation</p>
                 )}
                 {navItems.map((item) => (
                     <NavLink
@@ -151,18 +151,18 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
             </nav>
 
             {/* User Section */}
-            <div className="p-4 border-t border-white/10">
+            <div className="p-4 border-t border-gray-200">
                 {/* User Info */}
                 <div className={`flex items-center gap-3 mb-3 ${collapsed ? 'justify-center' : ''}`}>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-600 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-md">
                         <User className="w-5 h-5 text-white" />
                     </div>
                     {!collapsed && (
                         <div className="overflow-hidden flex-1 min-w-0">
-                            <p className="font-medium text-white truncate text-sm">{user?.name}</p>
-                            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+                            <p className="font-medium text-gray-800 truncate text-sm">{user?.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                             {isAdmin && (
-                                <span className="inline-flex items-center mt-1 px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded-full font-medium">
+                                <span className="inline-flex items-center mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
                                     Admin
                                 </span>
                             )}
@@ -173,7 +173,7 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
                 {/* Logout Button */}
                 <button
                     onClick={handleLogout}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-red-500/15 hover:text-red-400 transition-all text-sm font-medium ${collapsed ? 'justify-center' : ''
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all text-sm font-medium ${collapsed ? 'justify-center' : ''
                         }`}
                 >
                     <LogOut className="w-5 h-5 flex-shrink-0" />

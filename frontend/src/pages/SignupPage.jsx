@@ -59,7 +59,7 @@ const SignupPage = () => {
                 >
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-700 to-emerald-600 flex items-center justify-center shadow-lg">
                             <CheckSquare className="w-6 h-6 text-white" />
                         </div>
                         <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>TaskFlow</span>
@@ -211,7 +211,7 @@ const SignupPage = () => {
             </div>
 
             {/* Right Side - Branding */}
-            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 p-12 flex-col justify-between relative overflow-hidden">
+            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-emerald-600 to-green-700 p-12 flex-col justify-between relative overflow-hidden">
                 {/* Decorative Elements */}
                 <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 -translate-x-1/2"></div>
                 <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/10 rounded-full translate-y-1/2 translate-x-1/2"></div>
@@ -223,14 +223,14 @@ const SignupPage = () => {
                         </div>
                         <span className="text-2xl font-bold text-white">TaskFlow</span>
                     </div>
-                    <p className="text-indigo-100 text-sm">Task Management System</p>
+                    <p className="text-green-100 text-sm">Task Management System</p>
                 </div>
 
                 <div className="relative z-10">
                     <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
                         Start organizing<br />your work today
                     </h2>
-                    <p className="text-indigo-100 text-lg max-w-md">
+                    <p className="text-green-100 text-lg max-w-md">
                         Create teams, assign tasks, track progress, and boost your productivity with our powerful platform.
                     </p>
                 </div>
@@ -238,15 +238,15 @@ const SignupPage = () => {
                 <div className="relative z-10 flex gap-8">
                     <div>
                         <p className="text-3xl font-bold text-white">500+</p>
-                        <p className="text-indigo-200 text-sm">Active Teams</p>
+                        <p className="text-green-200 text-sm">Active Teams</p>
                     </div>
                     <div>
                         <p className="text-3xl font-bold text-white">10K+</p>
-                        <p className="text-indigo-200 text-sm">Tasks Completed</p>
+                        <p className="text-green-200 text-sm">Tasks Completed</p>
                     </div>
                     <div>
                         <p className="text-3xl font-bold text-white">99%</p>
-                        <p className="text-indigo-200 text-sm">Satisfaction</p>
+                        <p className="text-green-200 text-sm">Satisfaction</p>
                     </div>
                 </div>
             </div>

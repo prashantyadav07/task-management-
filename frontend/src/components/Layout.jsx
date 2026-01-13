@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import MobileNavbar from './MobileNavbar';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { teamsAPI } from '../services/api';
@@ -10,6 +11,7 @@ import InviteMemberModal from './modals/InviteMemberModal';
 const Layout = () => {
     const { isAdmin } = useAuth();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     // Modal states
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
@@ -18,6 +20,20 @@ const Layout = () => {
 
     // Data for modals
     const [teams, setTeams] = useState([]);
+
+    // Detect mobile screen size
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        // Check on mount
+        checkMobile();
+
+        // Add resize listener
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Fetch teams for modals
     useEffect(() => {
@@ -47,25 +63,48 @@ const Layout = () => {
         }
     }, []);
 
+    // Modal handlers
+    const modalHandlers = {
+        onCreateTask: () => setIsCreateTaskModalOpen(true),
+        onAddMember: () => setIsAddMemberModalOpen(true),
+        onInviteMember: () => setIsInviteMemberModalOpen(true)
+    };
+
     return (
         <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-            <Sidebar
-                onCreateTask={() => setIsCreateTaskModalOpen(true)}
-                onAddMember={() => setIsAddMemberModalOpen(true)}
-                onInviteMember={() => setIsInviteMemberModalOpen(true)}
-            />
+            {/* Mobile Navigation */}
+            {isMobile && (
+                <MobileNavbar
+                    onCreateTask={modalHandlers.onCreateTask}
+                    onAddMember={modalHandlers.onAddMember}
+                    onInviteMember={modalHandlers.onInviteMember}
+                />
+            )}
 
-            {/* Main Content - with left margin for sidebar */}
+            {/* Desktop Sidebar */}
+            {!isMobile && (
+                <Sidebar
+                    onCreateTask={modalHandlers.onCreateTask}
+                    onAddMember={modalHandlers.onAddMember}
+                    onInviteMember={modalHandlers.onInviteMember}
+                />
+            )}
+
+            {/* Main Content */}
             <main
-                className={`min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'
+                className={`min-h-screen transition-all duration-300 ${isMobile
+                        ? 'ml-0 pt-16'
+                        : sidebarCollapsed
+                            ? 'ml-20'
+                            : 'ml-64'
                     }`}
             >
-                <div className="p-6 lg:p-8">
+                <div className={`${isMobile ? 'p-4' : 'p-6 lg:p-8'}`}>
                     <Outlet />
                 </div>
             </main>
 
-            {/* Global Modals for Sidebar Actions */}
+            {/* Global Modals for Sidebar/Navbar Actions */}
             {isAdmin && (
                 <>
                     <CreateTaskModal

@@ -108,8 +108,8 @@ const DashboardPage = () => {
             label: 'Total Tasks',
             value: stats.total,
             icon: CheckSquare,
-            bgColor: '#eff6ff',
-            iconColor: '#2563eb',
+            bgColor: '#dcfce7',
+            iconColor: '#166534',
             clickable: true,
             statusFilter: null
         },
@@ -117,8 +117,8 @@ const DashboardPage = () => {
             label: 'Assigned',
             value: stats.assigned,
             icon: Clock,
-            bgColor: '#f0f9ff',
-            iconColor: '#0891b2',
+            bgColor: '#d1fae5',
+            iconColor: '#059669',
             clickable: true,
             statusFilter: 'ASSIGNED'
         },
@@ -135,7 +135,7 @@ const DashboardPage = () => {
             label: 'Completed',
             value: stats.completed,
             icon: CheckCircle2,
-            bgColor: '#dcfce7',
+            bgColor: '#bbf7d0',
             iconColor: '#22c55e',
             clickable: true,
             statusFilter: 'COMPLETED'
