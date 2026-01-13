@@ -9,14 +9,21 @@ dotenv.config();
  * Handles sending emails for the application using Gmail SMTP
  */
 
+// Log email configuration status on startup
+Logger.info('=== Email Service Configuration ===');
+Logger.info(`EMAIL_USER configured: ${process.env.EMAIL_USER ? 'YES (' + process.env.EMAIL_USER + ')' : 'NO'}`);
+Logger.info(`EMAIL_APP_PASSWORD configured: ${process.env.EMAIL_APP_PASSWORD ? 'YES (hidden)' : 'NO'}`);
+
 // Create reusable transporter with Gmail SMTP
 const createTransporter = () => {
   // Check if email credentials are configured
   if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
-    Logger.warn('Email credentials not configured - emails will be logged only');
+    Logger.warn('⚠️  Email credentials NOT configured - emails will be logged only (not sent)');
+    Logger.warn('⚠️  Set EMAIL_USER and EMAIL_APP_PASSWORD environment variables to enable real emails');
     return null;
   }
 
+  Logger.info('✅ Email transporter created with Gmail SMTP');
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -38,14 +45,20 @@ const transporter = createTransporter();
  * @returns {Promise<boolean>} - Success status
  */
 export const sendEmail = async ({ to, subject, text, html }) => {
+  const startTime = Date.now();
+  Logger.info(`📧 [STEP 1] Starting email send to: ${to}`);
+  Logger.info(`📧 [STEP 2] Subject: ${subject}`);
+
   try {
     // If transporter is not configured, just log the email
     if (!transporter) {
-      Logger.info(`[DEV MODE] Email would be sent to: ${to}`);
-      Logger.info(`[DEV MODE] Subject: ${subject}`);
-      Logger.info(`[DEV MODE] Body: ${text}`);
+      Logger.warn(`⚠️  [NO TRANSPORTER] Email NOT sent - credentials not configured`);
+      Logger.info(`📧 [MOCK] Would have sent email to: ${to}`);
+      Logger.info(`📧 [MOCK] Subject: ${subject}`);
       return true;
     }
+
+    Logger.info(`📧 [STEP 3] Transporter ready, preparing mail options...`);
 
     const mailOptions = {
       from: `"TaskFlow" <${process.env.EMAIL_USER}>`,
@@ -55,11 +68,26 @@ export const sendEmail = async ({ to, subject, text, html }) => {
       html
     };
 
+    Logger.info(`📧 [STEP 4] Sending email via Gmail SMTP...`);
     const info = await transporter.sendMail(mailOptions);
-    Logger.info(`Email sent successfully: ${info.messageId} to ${to}`);
+
+    const duration = Date.now() - startTime;
+    Logger.info(`✅ [STEP 5] Email sent successfully!`);
+    Logger.info(`✅ Message ID: ${info.messageId}`);
+    Logger.info(`✅ Recipient: ${to}`);
+    Logger.info(`✅ Response: ${JSON.stringify(info.response)}`);
+    Logger.info(`✅ Duration: ${duration}ms`);
+
     return true;
   } catch (error) {
-    Logger.error('Failed to send email', error);
+    const duration = Date.now() - startTime;
+    Logger.error(`❌ [FAILED] Email sending failed after ${duration}ms`);
+    Logger.error(`❌ Error name: ${error.name}`);
+    Logger.error(`❌ Error message: ${error.message}`);
+    Logger.error(`❌ Error code: ${error.code || 'N/A'}`);
+    if (error.response) {
+      Logger.error(`❌ SMTP Response: ${error.response}`);
+    }
     return false;
   }
 };
