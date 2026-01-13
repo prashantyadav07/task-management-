@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// API Base URL - will automatically use correct URL based on environment
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5000/api'  // Local development
+  : 'https://task-management-ten-neon.vercel.app/api';  // Production
 
 // Create axios instance with base configuration
 const api = axios.create({
