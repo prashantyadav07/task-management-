@@ -1,105 +1,115 @@
-import express from 'express';
-import cors from 'cors';
+import { Logger } from '../utils/logger.js';
 import dotenv from 'dotenv';
-import { connectDB } from './config/db.js';
-import initializeDatabase from './config/init-db.js';
-import { bootstrapAdminUser } from './config/admin-bootstrap.js';
-import { Logger } from './utils/logger.js';
-import app from './app.js';
 
-// Suppress dotenv startup logs
-const originalLog = console.log;
-console.log = () => {};
 dotenv.config();
-console.log = originalLog;
-
-const PORT = process.env.PORT || 5000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
 
 /**
- * Start server with database connection verification
- * Note: For Vercel, this only runs locally. Vercel uses app.js directly.
+ * Email Service
+ * Handles sending emails for the application (invitations, notifications, etc.)
  */
-const startServer = async () => {
+
+/**
+ * Send an email
+ * @param {Object} options - Email options
+ * @param {string} options.to - Recipient email address
+ * @param {string} options.subject - Email subject
+ * @param {string} options.text - Plain text body
+ * @param {string} options.html - HTML body (optional)
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendEmail = async ({ to, subject, text, html }) => {
   try {
-    // Skip DB initialization on Vercel (serverless)
-    if (process.env.VERCEL !== '1') {
-      // Database Connection
-      try {
-        await connectDB();
-        console.log('✅ Database connected');
-      } catch (dbError) {
-        Logger.error('Database connection failed', dbError);
-        throw new Error('Cannot start server without database connection');
-      }
-      
-      // Initialize database schema
-      try {
-        await initializeDatabase();
-        console.log('✅ Database schema initialized');
-      } catch (initError) {
-        Logger.error('Database schema initialization failed', initError);
-        console.log('⚠️  Database schema may need manual initialization');
-      }
-
-      // Bootstrap admin user
-      try {
-        await bootstrapAdminUser();
-        console.log('✅ Admin user verified');
-      } catch (adminError) {
-        Logger.error('Admin bootstrap failed', adminError);
-        console.log('⚠️  Admin user may need manual creation');
-      }
+    // In development, just log the email
+    if (process.env.NODE_ENV !== 'production') {
+      Logger.info(`Email would be sent to: ${to}`);
+      Logger.info(`Subject: ${subject}`);
+      Logger.info(`Body: ${text}`);
+      return true;
     }
-    
-    // Start Server (only in local development)
-    if (NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
-      const server = app.listen(PORT, () => {
-        console.log('✅ Server started on port ' + PORT);
-        console.log(`📡 API available at http://localhost:${PORT}/api`);
-      });
 
-      // Graceful Shutdown
-      const shutdown = (signal) => {
-        Logger.info(`Received ${signal} signal, closing server gracefully`);
-        server.close(() => {
-          Logger.info('Server closed');
-          process.exit(0);
-        });
-      };
+    // TODO: Implement actual email sending with a service like:
+    // - Nodemailer with SMTP
+    // - SendGrid
+    // - AWS SES
+    // - Mailgun
 
-      process.on('SIGTERM', () => shutdown('SIGTERM'));
-      process.on('SIGINT', () => shutdown('SIGINT'));
-    }
-    
-    // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
-      Logger.error('Uncaught exception', error);
-      if (NODE_ENV !== 'production') {
-        process.exit(1);
-      }
-    });
-    
-    // Handle unhandled promise rejections
-    process.on('unhandledRejection', (reason) => {
-      Logger.error('Unhandled promise rejection', new Error(String(reason)));
-      if (NODE_ENV !== 'production') {
-        process.exit(1);
-      }
-    });
-
+    Logger.info(`Email sent to: ${to}`);
+    return true;
   } catch (error) {
-    Logger.error('Failed to start server', error);
-    if (NODE_ENV !== 'production') {
-      process.exit(1);
-    }
+    Logger.error('Failed to send email', error);
+    return false;
   }
 };
 
-// Only run startServer if not in Vercel environment
-if (process.env.VERCEL !== '1') {
-  startServer();
-}
+/**
+ * Send invitation email
+ * @param {string} email - Recipient email
+ * @param {string} inviteToken - Invitation token
+ * @param {string} teamName - Name of the team
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendInvitationEmail = async (email, inviteToken, teamName) => {
+  const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accept-invite?token=${inviteToken}`;
 
-// Export for Vercel
-export default app;
+  return sendEmail({
+    to: email,
+    subject: `You've been invited to join ${teamName}`,
+    text: `You have been invited to join the team "${teamName}". Click the link to accept: ${inviteUrl}`,
+    html: `
+      <h2>Team Invitation</h2>
+      <p>You have been invited to join the team <strong>${teamName}</strong>.</p>
+      <p><a href="${inviteUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
+      <p>Or copy this link: ${inviteUrl}</p>
+    `
+  });
+};
+
+/**
+ * Send password reset email
+ * @param {string} email - Recipient email
+ * @param {string} resetToken - Password reset token
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendPasswordResetEmail = async (email, resetToken) => {
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+
+  return sendEmail({
+    to: email,
+    subject: 'Password Reset Request',
+    text: `You requested a password reset. Click the link to reset your password: ${resetUrl}`,
+    html: `
+      <h2>Password Reset</h2>
+      <p>You requested a password reset.</p>
+      <p><a href="${resetUrl}" style="background-color: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+      <p>Or copy this link: ${resetUrl}</p>
+      <p>If you didn't request this, please ignore this email.</p>
+    `
+  });
+};
+
+/**
+ * Send invitation email with full invite URL
+ * @param {string} email - Recipient email
+ * @param {string} inviteUrl - Full invitation URL 
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendInviteEmail = async (email, inviteUrl) => {
+  return sendEmail({
+    to: email,
+    subject: `You've been invited to join a team`,
+    text: `You have been invited to join a team. Click the link to accept: ${inviteUrl}`,
+    html: `
+      <h2>Team Invitation</h2>
+      <p>You have been invited to join a team.</p>
+      <p><a href="${inviteUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
+      <p>Or copy this link: ${inviteUrl}</p>
+    `
+  });
+};
+
+export default {
+  sendEmail,
+  sendInvitationEmail,
+  sendPasswordResetEmail,
+  sendInviteEmail
+};

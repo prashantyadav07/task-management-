@@ -16,150 +16,63 @@ dotenv.config();
 
 const app = express();
 
-// CORS Configuration - Allow Multiple Origins
+// CRITICAL: Enable CORS for all routes with proper configuration
 const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:5174',
-      'https://task-management-k3fk.vercel.app',
-      'https://task-management-k3fk-git-main-prashant-yadavs-projects-157031if.vercel.app',
-      'https://task-management-k3fk-prashant-yadavs-projects-157031if.vercel.app'
-    ];
-    
-    // Allow requests with no origin (Postman, mobile apps, etc.)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is allowed
-    if (allowedOrigins.some(allowed => origin.includes('task-management-k3fk') || origin.includes('localhost'))) {
-      callback(null, true);
-    } else {
-      console.log('⚠️ CORS blocked origin:', origin);
-      callback(null, true); // Allow for now during debugging
-    }
-  },
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:5174',
+    'https://task-management-k3fk.vercel.app',
+    'https://task-management-k3fk-git-main-prashant-yadavs-projects-1570311f.vercel.app',
+    'https://task-management-k3fk-pnbzskr2t.vercel.app'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400 // 24 hours
+  maxAge: 86400,
+  optionsSuccessStatus: 200
 };
 
+// Apply CORS middleware FIRST
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable preflight for all routes
 
-// Middleware
-app.use(express.json({ limit: '10mb' })); // For parsing JSON bodies with size limit
+// Handle preflight requests explicitly (Express 5 syntax)
+app.options('/{*path}', cors(corsOptions));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check Routes (MUST come before API routes)
+// Add CORS headers manually as backup
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (corsOptions.origin.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// Health check routes
 app.get('/', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Task Management API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0'
-  });
-});
-
-/**
- * Centralized Error Handling Middleware
- * Must be defined AFTER all other routes and middlewares
- */
-app.use((err, req, res, next) => {
-  const errorContext = {
-    method: req.method,
-    path: req.path,
-    userId: req.user?.userId,
-    ip: req.ip,
-    userAgent: req.get('user-agent'),
-    timestamp: new Date().toISOString(),
-  };
-
-  Logger.error(`[${req.method}] ${req.path}`, err, errorContext);
-
-  // Handle AppError (custom application errors)
-  if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
-      success: false,
-      errorCode: err.errorCode,
-      message: err.message,
-      ...(process.env.NODE_ENV === 'development' && { 
-        timestamp: err.timestamp,
-        path: req.path,
-        method: req.method,
-      }),
-    });
-  }
-
-  // Handle database connection errors
-  if (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED') {
-    Logger.error('🔴 Database connection error detected', err, { code: err.code });
-    return res.status(503).json({
-      success: false,
-      errorCode: 'SERVICE_UNAVAILABLE',
-      message: 'Database service is currently unavailable. Please try again later.',
-      ...(process.env.NODE_ENV === 'development' && { error: err.message }),
-    });
-  }
-
-  // Handle JSON parse errors
-  if (err instanceof SyntaxError && 'body' in err) {
-    Logger.warn('Invalid JSON in request body', err);
-    return res.status(400).json({
-      success: false,
-      errorCode: 'INVALID_JSON',
-      message: 'Invalid JSON format in request body. Please check your request.',
-    });
-  }
-
-  // Handle unexpected errors
-  const statusCode = err.statusCode || 500;
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
-  Logger.error('💥 Unexpected error - check logs for details', err, errorContext);
-
-  res.status(statusCode).json({
-    success: false,
-    errorCode: 'INTERNAL_SERVER_ERROR',
-    message: isDevelopment
-      ? err.message || 'An unexpected error occurred'
-      : 'An unexpected error occurred. Please try again later.',
-    ...(isDevelopment && {
-      error: err.message,
-      stack: err.stack,
-      timestamp: new Date().toISOString(),
-    }),
-  });
-});
-
-export default app;
-
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/teams', teamRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/invites', inviteRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/analytics', analyticsRoutes);
-
-/**
- * 404 Not Found Handler
- * MUST come after all other routes
- */
-app.use((req, res) => {
-  Logger.warn(`404 Not Found: ${req.method} ${req.path}`);
-  res.status(404).json({
-    success: false,
-    errorCode: 'ROUTE_NOT_FOUND',
-    message: `The requested ${req.method} ${req.path} does not exist`,
+    environment: process.env.NODE_ENV || 'production',
+    cors: 'enabled'
   });
 });
 
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'healthy',
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
@@ -167,8 +80,8 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Task Management API',
     version: '1.0.0',
     endpoints: {
@@ -181,3 +94,66 @@ app.get('/api', (req, res) => {
     }
   });
 });
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/teams', teamRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/invites', inviteRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
+// 404 Handler
+app.use((req, res) => {
+  Logger.warn(`404 Not Found: ${req.method} ${req.path}`);
+  res.status(404).json({
+    success: false,
+    errorCode: 'ROUTE_NOT_FOUND',
+    message: `The requested ${req.method} ${req.path} does not exist`,
+  });
+});
+
+// Error Handler
+app.use((err, req, res, next) => {
+  const errorContext = {
+    method: req.method,
+    path: req.path,
+    userId: req.user?.userId,
+    timestamp: new Date().toISOString(),
+  };
+
+  Logger.error(`[${req.method}] ${req.path}`, err, errorContext);
+
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      errorCode: err.errorCode,
+      message: err.message,
+    });
+  }
+
+  if (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED') {
+    return res.status(503).json({
+      success: false,
+      errorCode: 'SERVICE_UNAVAILABLE',
+      message: 'Database service is currently unavailable.',
+    });
+  }
+
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      errorCode: 'INVALID_JSON',
+      message: 'Invalid JSON format in request body.',
+    });
+  }
+
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    success: false,
+    errorCode: 'INTERNAL_SERVER_ERROR',
+    message: 'An unexpected error occurred.',
+  });
+});
+
+export default app;
