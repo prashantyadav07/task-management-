@@ -224,26 +224,29 @@ const TeamChatTab = ({ teamId }) => {
                                 key={message.id}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className={`flex gap-3 ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}
+                                className={`flex gap-3 ${isMyMessage ? 'justify-end' : 'justify-start'}`}
                             >
-                                {/* Avatar placeholder */}
-                                <div className="flex-shrink-0">
-                                    {showAvatar ? (
-                                        <div
-                                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white"
-                                            style={{ backgroundColor: 'var(--color-primary)' }}
-                                        >
-                                            {message.user_name?.charAt(0).toUpperCase() || 'U'}
-                                        </div>
-                                    ) : (
-                                        <div className="w-8 h-8" />
-                                    )}
-                                </div>
+                                {/* Left side: Avatar for other users */}
+                                {!isMyMessage && (
+                                    <div className="flex-shrink-0">
+                                        {showAvatar ? (
+                                            <div
+                                                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white"
+                                                style={{ backgroundColor: 'var(--color-primary)' }}
+                                            >
+                                                {message.user_name?.charAt(0).toUpperCase() || 'U'}
+                                            </div>
+                                        ) : (
+                                            <div className="w-8 h-8" />
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Message content */}
-                                <div className={`flex-1 max-w-md ${isMyMessage ? 'items-end' : 'items-start'} flex flex-col`}>
+                                <div className={`max-w-md flex flex-col ${isMyMessage ? 'items-end' : 'items-start'}`}>
+                                    {/* Name and timestamp header */}
                                     {showAvatar && (
-                                        <div className="flex items-center gap-2 mb-1">
+                                        <div className={`flex items-center gap-2 mb-1 ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
                                             <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
                                                 {isMyMessage ? 'You' : message.user_name}
                                             </span>
@@ -253,11 +256,12 @@ const TeamChatTab = ({ teamId }) => {
                                         </div>
                                     )}
 
-                                    <div className="flex items-start gap-2 group">
+                                    {/* Message bubble with delete button */}
+                                    <div className={`flex items-center gap-2 group ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
                                         <div
                                             className={`px-4 py-2 rounded-2xl ${isMyMessage
-                                                ? 'rounded-tr-sm'
-                                                : 'rounded-tl-sm'
+                                                    ? 'rounded-tr-sm'
+                                                    : 'rounded-tl-sm'
                                                 }`}
                                             style={{
                                                 backgroundColor: isMyMessage
@@ -266,18 +270,21 @@ const TeamChatTab = ({ teamId }) => {
                                                 color: isMyMessage
                                                     ? 'white'
                                                     : 'var(--text-primary)',
+                                                border: !isMyMessage ? '1px solid var(--border-color)' : 'none'
                                             }}
                                         >
                                             <p className="text-sm whitespace-pre-wrap break-words">
                                                 {message.message}
                                             </p>
+                                            {/* Timestamp for consecutive messages */}
                                             {!showAvatar && (
                                                 <span
                                                     className="text-xs mt-1 block"
                                                     style={{
                                                         color: isMyMessage
                                                             ? 'rgba(255, 255, 255, 0.7)'
-                                                            : 'var(--text-muted)'
+                                                            : 'var(--text-muted)',
+                                                        textAlign: isMyMessage ? 'right' : 'left'
                                                     }}
                                                 >
                                                     {formatTime(message.created_at)}
@@ -285,16 +292,36 @@ const TeamChatTab = ({ teamId }) => {
                                             )}
                                         </div>
 
+                                        {/* Delete button */}
                                         <button
                                             onClick={() => handleDeleteMessage(message)}
-                                            className="p-1 rounded hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                                            style={{ color: 'var(--color-danger)' }}
+                                            className="p-1 rounded-lg hover:bg-opacity-10 transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                            style={{
+                                                color: 'var(--color-danger)',
+                                                backgroundColor: 'transparent'
+                                            }}
                                             title="Delete message"
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Right side: Avatar for current user (invisible placeholder for alignment) */}
+                                {isMyMessage && (
+                                    <div className="flex-shrink-0">
+                                        {showAvatar ? (
+                                            <div
+                                                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white"
+                                                style={{ backgroundColor: 'var(--color-success)' }}
+                                            >
+                                                {user?.name?.charAt(0).toUpperCase() || 'Y'}
+                                            </div>
+                                        ) : (
+                                            <div className="w-8 h-8" />
+                                        )}
+                                    </div>
+                                )}
                             </motion.div>
                         );
                     })
