@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Users,
@@ -26,12 +26,14 @@ import TeamChatTab from '../components/TeamChatTab';
 const TeamDetailPage = () => {
     const { id } = useParams();
     const { isAdmin, user } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const [team, setTeam] = useState(null);
     const [members, setMembers] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('members');
+    // Read initial tab from URL, default to 'members' if not specified
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'members');
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
@@ -76,6 +78,12 @@ const TeamDetailPage = () => {
 
     const handleTaskCreated = (newTask) => {
         setTasks([...tasks, newTask]);
+    };
+
+    // Handle tab change and update URL
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        setSearchParams({ tab });
     };
 
     const handleDeleteTeam = async () => {
@@ -182,6 +190,13 @@ const TeamDetailPage = () => {
                     {!isAdmin && isMember && (
                         <div className="flex items-center gap-3 flex-wrap">
                             <button
+                                onClick={() => setIsAddMemberModalOpen(true)}
+                                className="btn btn-secondary"
+                            >
+                                <Users className="w-5 h-5" />
+                                Add Member
+                            </button>
+                            <button
                                 onClick={() => setIsInviteModalOpen(true)}
                                 className="btn btn-secondary"
                             >
@@ -224,7 +239,7 @@ const TeamDetailPage = () => {
             {/* Tabs */}
             <div className="flex items-center gap-1 mb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <button
-                    onClick={() => setActiveTab('members')}
+                    onClick={() => handleTabChange('members')}
                     className="px-4 py-3 font-medium transition-all relative"
                     style={{ color: activeTab === 'members' ? 'var(--color-primary)' : 'var(--text-secondary)' }}
                 >
@@ -241,7 +256,7 @@ const TeamDetailPage = () => {
                     )}
                 </button>
                 <button
-                    onClick={() => setActiveTab('tasks')}
+                    onClick={() => handleTabChange('tasks')}
                     className="px-4 py-3 font-medium transition-all relative"
                     style={{ color: activeTab === 'tasks' ? 'var(--color-primary)' : 'var(--text-secondary)' }}
                 >
@@ -258,7 +273,7 @@ const TeamDetailPage = () => {
                     )}
                 </button>
                 <button
-                    onClick={() => setActiveTab('chat')}
+                    onClick={() => handleTabChange('chat')}
                     className="px-4 py-3 font-medium transition-all relative"
                     style={{ color: activeTab === 'chat' ? 'var(--color-primary)' : 'var(--text-secondary)' }}
                 >

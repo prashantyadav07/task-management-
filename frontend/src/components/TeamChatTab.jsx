@@ -107,7 +107,10 @@ const TeamChatTab = ({ teamId }) => {
             const response = await chatAPI.createMessage(teamId, newMessage.trim());
             const savedMessage = response.data.data;
 
-            // Emit socket event for real-time delivery
+            // Immediately add message to local state (optimistic UI update)
+            setMessages(prev => [...prev, savedMessage]);
+
+            // Emit socket event for real-time delivery to other users
             socket.emit('send_message', {
                 teamId,
                 userId: user.id,
