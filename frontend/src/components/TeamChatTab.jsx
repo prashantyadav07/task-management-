@@ -15,7 +15,9 @@ const TeamChatTab = ({ teamId }) => {
     const [error, setError] = useState('');
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [messageToDelete, setMessageToDelete] = useState(null);
+    const [selectedMessageId, setSelectedMessageId] = useState(null); // For mobile tap interaction
     const messagesEndRef = useRef(null);
+    const longPressTimerRef = useRef(null);
 
     // Scroll to bottom of messages
     const scrollToBottom = () => {
@@ -131,6 +133,40 @@ const TeamChatTab = ({ teamId }) => {
     const handleDeleteMessage = (message) => {
         setMessageToDelete(message);
         setDeleteModalOpen(true);
+        setSelectedMessageId(null); // Clear selection after opening modal
+    };
+
+    // Mobile interaction handlers
+    const handleTouchStart = (messageId) => {
+        // Start long-press timer (500ms)
+        longPressTimerRef.current = setTimeout(() => {
+            setSelectedMessageId(messageId);
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                setSelectedMessageId(null);
+            }, 3000);
+        }, 500);
+    };
+
+    const handleTouchEnd = () => {
+        // Clear long-press timer if touch ends before 500ms
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+    };
+
+    const handleMessageClick = (messageId) => {
+        // Toggle selected message on tap (for quick tap, not long-press)
+        if (selectedMessageId === messageId) {
+            setSelectedMessageId(null);
+        } else {
+            setSelectedMessageId(messageId);
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                setSelectedMessageId(null);
+            }, 3000);
+        }
     };
 
     const handleDeleteForMe = async (messageId) => {
@@ -257,7 +293,12 @@ const TeamChatTab = ({ teamId }) => {
                                     )}
 
                                     {/* Message bubble with delete button */}
-                                    <div className={`flex items-center gap-2 group ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
+                                    <div
+                                        className={`flex items-center gap-2 group ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}
+                                        onTouchStart={() => handleTouchStart(message.id)}
+                                        onTouchEnd={handleTouchEnd}
+                                        onClick={() => handleMessageClick(message.id)}
+                                    >
                                         <div
                                             className={`px-4 py-2 rounded-2xl ${isMyMessage
                                                     ? 'rounded-tr-sm'
@@ -292,10 +333,16 @@ const TeamChatTab = ({ teamId }) => {
                                             )}
                                         </div>
 
-                                        {/* Delete button */}
+                                        {/* Delete button - visible on hover (desktop) or when selected (mobile) */}
                                         <button
-                                            onClick={() => handleDeleteMessage(message)}
-                                            className="p-1 rounded-lg hover:bg-opacity-10 transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                            onClick={(e) => {
+                                                e.stopPropagation(); // Prevent triggering message click
+                                                handleDeleteMessage(message);
+                                            }}
+                                            className={`p-1 rounded-lg hover:bg-opacity-10 transition-all flex-shrink-0 ${selectedMessageId === message.id
+                                                    ? 'opacity-100' // Always visible when selected on mobile
+                                                    : 'opacity-0 group-hover:opacity-100' // Hover for desktop
+                                                }`}
                                             style={{
                                                 color: 'var(--color-danger)',
                                                 backgroundColor: 'transparent'
