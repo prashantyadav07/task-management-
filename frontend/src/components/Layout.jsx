@@ -11,7 +11,6 @@ import AddMemberModal from './modals/AddMemberModal';
 import InviteMemberModal from './modals/InviteMemberModal';
 import BulkInviteModal from './modals/BulkInviteModal';
 import BulkInviteTeamSelectorModal from './modals/BulkInviteTeamSelectorModal';
-import BulkCreateUsersModal from './modals/BulkCreateUsersModal';
 
 const Layout = () => {
     const { isAdmin } = useAuth();
@@ -27,7 +26,6 @@ const Layout = () => {
     const [isBulkInviteTeamSelectorOpen, setIsBulkInviteTeamSelectorOpen] = useState(false);
     const [isBulkInviteModalOpen, setIsBulkInviteModalOpen] = useState(false);
     const [selectedTeamForBulkInvite, setSelectedTeamForBulkInvite] = useState(null);
-    const [isBulkCreateUsersModalOpen, setIsBulkCreateUsersModalOpen] = useState(false);
 
     // Data for modals
     const [teams, setTeams] = useState([]);
@@ -80,7 +78,6 @@ const Layout = () => {
         onAddMember: () => setIsAddMemberModalOpen(true),
         onInviteMember: () => setIsInviteMemberModalOpen(true),
         onBulkInvite: () => setIsBulkInviteTeamSelectorOpen(true),
-        onBulkCreateUsers: () => setIsBulkCreateUsersModalOpen(true),
     };
 
     const handleTeamSelected = (team) => {
@@ -113,7 +110,6 @@ const Layout = () => {
                     onAddMember={modalHandlers.onAddMember}
                     onInviteMember={modalHandlers.onInviteMember}
                     onBulkInvite={modalHandlers.onBulkInvite}
-                    onBulkCreateUsers={modalHandlers.onBulkCreateUsers}
                 />
             )}
 
@@ -170,14 +166,6 @@ const Layout = () => {
                         onClose={handleBulkInviteClose}
                         teamId={selectedTeamForBulkInvite?.id}
                         teamName={selectedTeamForBulkInvite?.name}
-                    />
-
-                    <BulkCreateUsersModal
-                        isOpen={isBulkCreateUsersModalOpen}
-                        onClose={() => setIsBulkCreateUsersModalOpen(false)}
-                        onSuccess={() => {
-                            // Optionally refresh data or show notification
-                        }}
                     />
                 </>
             )}

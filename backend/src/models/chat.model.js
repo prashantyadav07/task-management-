@@ -13,7 +13,9 @@ const ChatModel = {
       const result = await client.query(
         `INSERT INTO team_chat_messages (team_id, user_id, message)
          VALUES ($1, $2, $3)
-         RETURNING id, team_id, user_id, message, created_at, is_deleted`,
+         RETURNING id, team_id, user_id, message, 
+         TO_CHAR(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as created_at, 
+         is_deleted`,
         [teamId, userId, message]
       );
 
@@ -46,7 +48,7 @@ const ChatModel = {
           m.team_id, 
           m.user_id, 
           m.message, 
-          m.created_at,
+          TO_CHAR(m.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as created_at,
           m.is_deleted,
           u.name as user_name,
           u.email as user_email

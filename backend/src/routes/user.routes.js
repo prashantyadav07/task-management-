@@ -9,7 +9,6 @@ import {
   assignTaskToUser,
   assignTaskToMultipleUsers,
   deleteMember,
-  bulkCreateUsers,
 } from '../controllers/user.controller.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
 import { requireRole } from '../middlewares/role.middleware.js';
@@ -26,7 +25,6 @@ import { requireRole } from '../middlewares/role.middleware.js';
 router.get('/stats/count', authenticateToken, requireRole(['ADMIN']), getUserStats);
 router.get('/', authenticateToken, requireRole(['ADMIN']), getAllUsers);
 router.post('/assign-task-bulk', authenticateToken, requireRole(['ADMIN']), assignTaskToMultipleUsers);
-router.post('/bulk-create', authenticateToken, requireRole(['ADMIN']), bulkCreateUsers);
 
 // Parameterized routes (after static routes)
 router.get('/:userId', authenticateToken, requireRole(['ADMIN']), getUserDetails);

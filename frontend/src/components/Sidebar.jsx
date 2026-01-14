@@ -17,7 +17,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
-const Sidebar = ({ onInviteMember, onCreateTask, onAddMember, onCreateMemberTask, onCreateTeam, onBulkInvite, onBulkCreateUsers }) => {
+const Sidebar = ({ onInviteMember, onCreateTask, onAddMember, onCreateMemberTask, onCreateTeam, onBulkInvite }) => {
     const { user, logout, isAdmin } = useAuth();
     const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(false);
@@ -76,12 +76,6 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember, onCreateMemberTask
             label: 'Bulk Invite',
             onClick: onBulkInvite,
             color: '#10b981'
-        },
-        {
-            icon: UserPlus,
-            label: 'Bulk Add Users',
-            onClick: onBulkCreateUsers,
-            color: '#0891b2'
         }
     ] : [];
 

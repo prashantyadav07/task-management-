@@ -144,15 +144,31 @@ const TeamChatTab = ({ teamId }) => {
     };
 
     const formatTime = (timestamp) => {
+        // Create Date object from the timestamp (database returns UTC)
         const date = new Date(timestamp);
         const now = new Date();
+
+        // Calculate difference in hours
         const diffInHours = (now - date) / (1000 * 60 * 60);
 
+        // Display just time if message is from today
         if (diffInHours < 24) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // Use local time with proper 12/24 hour format based on user's locale
+            return date.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true // Shows AM/PM format
+            });
         } else {
-            return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) +
-                ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // For older messages, show date + time in local timezone
+            return date.toLocaleDateString([], {
+                month: 'short',
+                day: 'numeric'
+            }) + ' ' + date.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
         }
     };
 
@@ -217,8 +233,8 @@ const TeamChatTab = ({ teamId }) => {
                                     <div className="flex items-start gap-2">
                                         <div
                                             className={`px-4 py-2 rounded-2xl ${isMyMessage
-                                                    ? 'rounded-tr-sm'
-                                                    : 'rounded-tl-sm'
+                                                ? 'rounded-tr-sm'
+                                                : 'rounded-tl-sm'
                                                 }`}
                                             style={{
                                                 backgroundColor: isMyMessage

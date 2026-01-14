@@ -102,7 +102,6 @@ export const usersAPI = {
   assignTask: (userId, taskId) => api.post(`/users/${userId}/assign-task`, { taskId }),
   assignTaskBulk: (taskId, userIds) => api.post('/users/assign-task-bulk', { taskId, userIds }),
   deleteUser: (userId) => api.delete(`/users/${userId}?hard=true`),
-  bulkCreateUsers: (users) => api.post('/users/bulk-create', { users }),
 };
 
 // Analytics API (Admin Only)
