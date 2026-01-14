@@ -1,14 +1,15 @@
 import InviteModel from '../models/invite.model.js';
 import TeamModel from '../models/team.model.js';
-import { sendInvitationEmail } from '../services/email.service.js';
+import UserModel from '../models/user.model.js';
+import { sendInvitationEmail, sendTeamInvitationEmail } from '../services/email.service.js';
 import { Logger } from '../utils/logger.js';
-import { ValidationError, NotFoundError } from '../utils/errors.js';
+import { ValidationError, NotFoundError, AuthorizationError } from '../utils/errors.js';
 import { validateEmail, validateNumericId } from '../utils/validation.js';
 
 /**
  * Send an invitation to a user
  * POST /api/invites
- * Requires: ADMIN role
+ * Requires: ADMIN role or team owner/member for their own teams
  */
 export const sendInvitation = async (req, res, next) => {
   try {
@@ -30,6 +31,23 @@ export const sendInvitation = async (req, res, next) => {
 
     Logger.debug('Sending invitation', { email: validatedEmail, teamId: validatedTeamId, invitingUserId });
 
+    // Get the team
+    const team = await TeamModel.findById(validatedTeamId);
+    if (!team) {
+      throw new NotFoundError('Team not found');
+    }
+
+    // Check authorization: admin can invite anyone, others can only invite for their own teams
+    if (req.user.role !== 'ADMIN') {
+      const isTeamOwner = team.owner_id === invitingUserId;
+      const teamMembers = await TeamModel.findMembers(validatedTeamId);
+      const isTeamMember = teamMembers.some(m => m.id === invitingUserId);
+
+      if (!isTeamOwner && !isTeamMember) {
+        throw new AuthorizationError('You can only send invitations for your own teams');
+      }
+    }
+
     // Check if the user is already a member of the team
     const existingMembers = await TeamModel.findMembers(validatedTeamId);
     const isAlreadyMember = existingMembers.some(member => member.email === validatedEmail);
@@ -42,16 +60,18 @@ export const sendInvitation = async (req, res, next) => {
     // Create the invitation record in the database
     const newInvite = await InviteModel.create(validatedEmail, validatedTeamId);
 
-    // Get the team name for the email
-    const team = await TeamModel.findById(validatedTeamId);
-    if (!team) {
-      throw new NotFoundError('Team not found');
-    }
+    // Get inviting user's name
+    const invitingUser = await UserModel.findById(invitingUserId);
 
     // Attempt to send the invitation email (non-blocking)
     try {
-      // Pass token instead of full URL - email service will construct the URL
-      await sendInvitationEmail(validatedEmail, newInvite.token, team.name);
+      // Use enhanced team invitation email with user name
+      await sendTeamInvitationEmail(
+        validatedEmail,
+        team.name,
+        newInvite.token,
+        invitingUser?.name || 'A team member'
+      );
       Logger.info('Invitation email sent successfully', { email: validatedEmail, teamId: validatedTeamId });
     } catch (emailError) {
       Logger.error('Failed to send invitation email', emailError, { email: validatedEmail });
@@ -77,7 +97,7 @@ export const sendInvitation = async (req, res, next) => {
     });
 
   } catch (error) {
-    if (error instanceof ValidationError) {
+    if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthorizationError) {
       return res.status(error.statusCode).json({
         success: false,
         errorCode: error.errorCode,

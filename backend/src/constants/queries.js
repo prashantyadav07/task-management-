@@ -35,6 +35,25 @@ const QUERIES = {
     UPDATE_STATUS_USED: 'UPDATE invites SET status = $1, accepted_at = NOW() WHERE id = $2 RETURNING *',
     DELETE_EXPIRED: 'DELETE FROM invites WHERE expires_at < NOW()'
   },
+  BULK_INVITE: {
+    CREATE_BATCH: 'INSERT INTO bulk_invites (batch_id, team_id, created_by_user_id, total_invites) VALUES ($1, $2, $3, $4) RETURNING id, batch_id, team_id, created_by_user_id',
+    CREATE_ITEM: 'INSERT INTO bulk_invite_items (batch_id, email, token, expires_at) VALUES ($1, $2, $3, $4) RETURNING batch_id, email, token, expires_at, status',
+    FIND_BATCH_BY_ID: 'SELECT * FROM bulk_invites WHERE batch_id = $1',
+    FIND_ITEM_BY_TOKEN: 'SELECT * FROM bulk_invite_items WHERE token = $1',
+    UPDATE_ITEM_STATUS: 'UPDATE bulk_invite_items SET status = $1, accepted_at = NOW() WHERE token = $2 RETURNING *',
+    UPDATE_BATCH_COUNTS: 'UPDATE bulk_invites SET accepted_count = accepted_count + 1, pending_count = pending_count - 1 WHERE batch_id = $1 RETURNING *',
+    GET_BATCH_ITEMS: 'SELECT * FROM bulk_invite_items WHERE batch_id = $1 ORDER BY created_at DESC'
+  },
+  TEAM_OWNERSHIP: {
+    CREATE: 'INSERT INTO team_ownership (team_id, creator_user_id, creator_role) VALUES ($1, $2, $3) RETURNING *',
+    FIND_BY_TEAM: 'SELECT * FROM team_ownership WHERE team_id = $1',
+    DELETE: 'DELETE FROM team_ownership WHERE team_id = $1'
+  },
+  TASK_OWNERSHIP: {
+    CREATE: 'INSERT INTO task_ownership (task_id, creator_user_id, creator_role) VALUES ($1, $2, $3) RETURNING *',
+    FIND_BY_TASK: 'SELECT * FROM task_ownership WHERE task_id = $1',
+    DELETE: 'DELETE FROM task_ownership WHERE task_id = $1'
+  },
   ANALYTICS: {
     // Total tasks across all teams
     GET_TOTAL_TASKS: 'SELECT COUNT(*) as total_tasks FROM tasks',

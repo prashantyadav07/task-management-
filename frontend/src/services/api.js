@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API Base URL - automatically detects environment
-const API_BASE_URL = window.location.hostname === 'localhost' 
+const API_BASE_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:5000/api'
   : 'https://task-management-ten-neon.vercel.app/api';
 
@@ -46,7 +46,7 @@ api.interceptors.response.use(
       status: error.response?.status,
       message: error.response?.data?.message || error.message
     };
-    
+
     console.error('❌ API Error:', errorDetails);
 
     if (error.response?.status === 401) {
@@ -54,7 +54,7 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -74,6 +74,7 @@ export const teamsAPI = {
   createTeam: (name, description) => api.post('/teams', { name, description }),
   getTeamMembers: (teamId) => api.get(`/teams/${teamId}/members`),
   addMemberToTeam: (teamId, userId) => api.post(`/teams/${teamId}/members`, { userId }),
+  deleteTeam: (teamId) => api.delete(`/teams/${teamId}`),
 };
 
 // Tasks API
@@ -82,12 +83,15 @@ export const tasksAPI = {
   getTeamTasks: (teamId) => api.get(`/tasks/team/${teamId}`),
   createTask: (taskData) => api.post('/tasks', taskData),
   startTask: (taskId) => api.put(`/tasks/${taskId}/start`, {}),
-  completeTask: (taskId) => api.put(`/tasks/${taskId}/complete`, {}),
+  completeTask: (taskId, data) => api.put(`/tasks/${taskId}/complete`, data || {}),
+  deleteTask: (taskId, hard = false) => api.delete(`/tasks/${taskId}?hard=${hard}`),
 };
 
 // Invites API
 export const invitesAPI = {
   sendInvitation: (email, teamId) => api.post('/invites', { email, teamId }),
+  sendBulkInvitation: (teamId, emails) => api.post('/invites/bulk', { teamId, emails }),
+  getBulkBatch: (batchId) => api.get(`/invites/bulk/${batchId}`),
 };
 
 // Users API (Admin Only)
@@ -97,6 +101,8 @@ export const usersAPI = {
   getUserDetails: (userId) => api.get(`/users/${userId}`),
   assignTask: (userId, taskId) => api.post(`/users/${userId}/assign-task`, { taskId }),
   assignTaskBulk: (taskId, userIds) => api.post('/users/assign-task-bulk', { taskId, userIds }),
+  deleteUser: (userId) => api.delete(`/users/${userId}?hard=true`),
+  bulkCreateUsers: (users) => api.post('/users/bulk-create', { users }),
 };
 
 // Analytics API (Admin Only)
@@ -109,6 +115,14 @@ export const analyticsAPI = {
   getUserStats: (userId) => api.get(`/analytics/user/${userId}`),
   getCompletionTime: () => api.get('/analytics/completion-time'),
   getCompletionRate: () => api.get('/analytics/completion-rate'),
+};
+
+// Chat API
+export const chatAPI = {
+  getTeamMessages: (teamId, limit = 100, offset = 0) =>
+    api.get(`/chat/${teamId}?limit=${limit}&offset=${offset}`),
+  createMessage: (teamId, message) => api.post(`/chat/${teamId}`, { message }),
+  deleteMessage: (messageId, hard = false) => api.delete(`/chat/message/${messageId}?hard=${hard}`),
 };
 
 export default api;

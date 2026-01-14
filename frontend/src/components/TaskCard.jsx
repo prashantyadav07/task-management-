@@ -8,17 +8,19 @@ import {
     Calendar,
     User,
     Loader2,
-    AlertCircle
+    AlertCircle,
+    Trash2
 } from 'lucide-react';
 import { tasksAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const TaskCard = ({ task, onTaskUpdated }) => {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     const isAssignedToMe = task.assigned_to_user_id === user?.id;
+    const canDelete = isAdmin && task.created_by_user_id === user?.id;
 
     const handleStartTask = async () => {
         setError('');
@@ -42,6 +44,22 @@ const TaskCard = ({ task, onTaskUpdated }) => {
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to complete task');
         } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteTask = async () => {
+        if (!window.confirm(`Are you sure you want to delete "${task.title}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        setError('');
+        setLoading(true);
+        try {
+            await tasksAPI.deleteTask(task.id);
+            onTaskUpdated?.();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to delete task');
             setLoading(false);
         }
     };
@@ -93,10 +111,23 @@ const TaskCard = ({ task, onTaskUpdated }) => {
                         )}
                     </div>
                 </div>
-                <span className={`badge ${statusConfig.className} flex items-center gap-1.5`}>
-                    <StatusIcon className="w-3.5 h-3.5" />
-                    {statusConfig.label}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className={`badge ${statusConfig.className} flex items-center gap-1.5`}>
+                        <StatusIcon className="w-3.5 h-3.5" />
+                        {statusConfig.label}
+                    </span>
+                    {canDelete && (
+                        <button
+                            onClick={handleDeleteTask}
+                            disabled={loading}
+                            className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            style={{ color: 'var(--color-danger)' }}
+                            title="Delete task"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Description */}

@@ -8,7 +8,8 @@ import {
     AlertCircle,
     CheckCircle2,
     Search,
-    Users
+    Users,
+    Check
 } from 'lucide-react';
 import { usersAPI, teamsAPI } from '../../services/api';
 
@@ -16,7 +17,7 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedUserId, setSelectedUserId] = useState('');
+    const [selectedUserIds, setSelectedUserIds] = useState([]); // Changed to array for multiple selection
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -73,18 +74,45 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
         user.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Toggle user selection
+    const toggleUserSelection = (userId) => {
+        setSelectedUserIds(prev => {
+            if (prev.includes(userId)) {
+                return prev.filter(id => id !== userId);
+            } else {
+                return [...prev, userId];
+            }
+        });
+    };
+
+    // Select all visible users
+    const selectAll = () => {
+        const allVisibleIds = filteredUsers.map(u => u.id);
+        setSelectedUserIds(allVisibleIds);
+    };
+
+    // Deselect all
+    const deselectAll = () => {
+        setSelectedUserIds([]);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!selectedUserId || !localTeamId) return;
+        if (selectedUserIds.length === 0 || !localTeamId) return;
 
         setError('');
         setSuccess('');
         setSubmitting(true);
 
         try {
-            await teamsAPI.addMemberToTeam(localTeamId, selectedUserId);
-            const addedUser = users.find(u => u.id === selectedUserId);
-            setSuccess(`${addedUser?.name || 'User'} added to team successfully!`);
+            // Add each selected user to the team
+            const promises = selectedUserIds.map(userId =>
+                teamsAPI.addMemberToTeam(localTeamId, userId)
+            );
+
+            await Promise.all(promises);
+
+            setSuccess(`${selectedUserIds.length} user(s) added to team successfully!`);
             onMemberAdded?.();
 
             // Close after a short delay to show success message
@@ -92,14 +120,14 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                 handleClose();
             }, 1500);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to add member to team');
+            setError(err.response?.data?.message || 'Failed to add members to team');
         } finally {
             setSubmitting(false);
         }
     };
 
     const handleClose = () => {
-        setSelectedUserId('');
+        setSelectedUserIds([]);
         setSearchQuery('');
         setError('');
         setSuccess('');
@@ -108,7 +136,7 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
 
     const handleTeamChange = (teamId) => {
         setLocalTeamId(teamId);
-        setSelectedUserId('');
+        setSelectedUserIds([]);
         if (onTeamChange) {
             onTeamChange(teamId);
         }
@@ -146,7 +174,9 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Add Member</h2>
-                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Add an existing platform user to a team</p>
+                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                        Add existing platform users to a team{selectedUserIds.length > 0 && ` (${selectedUserIds.length} selected)`}
+                                    </p>
                                 </div>
                             </div>
                             <button
@@ -193,7 +223,7 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                             )}
 
                             {/* Search */}
-                            <div className="relative mb-4">
+                            <div className="relative mb-3">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                                 <input
                                     type="text"
@@ -205,6 +235,38 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                                 />
                             </div>
 
+                            {/* Select/Deselect All */}
+                            {filteredUsers.length > 0 && (
+                                <div className="flex gap-2 mb-3">
+                                    <button
+                                        type="button"
+                                        onClick={selectAll}
+                                        className="text-xs px-3 py-1 rounded-lg"
+                                        style={{
+                                            backgroundColor: 'var(--color-primary-subtle)',
+                                            color: 'var(--color-primary)',
+                                            border: '1px solid var(--color-primary)'
+                                        }}
+                                    >
+                                        Select All ({filteredUsers.length})
+                                    </button>
+                                    {selectedUserIds.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={deselectAll}
+                                            className="text-xs px-3 py-1 rounded-lg"
+                                            style={{
+                                                backgroundColor: 'var(--bg-secondary)',
+                                                color: 'var(--text-secondary)',
+                                                border: '1px solid var(--border-color)'
+                                            }}
+                                        >
+                                            Deselect All
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
                             {/* User List */}
                             <div className="flex-1 overflow-y-auto space-y-2 mb-4" style={{ maxHeight: '15rem' }}>
                                 {loading ? (
@@ -212,31 +274,45 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                                         <div className="loading-spinner" style={{ width: '1.5rem', height: '1.5rem' }}></div>
                                     </div>
                                 ) : filteredUsers.length > 0 ? (
-                                    filteredUsers.map((user) => (
-                                        <button
-                                            key={user.id}
-                                            onClick={() => setSelectedUserId(user.id)}
-                                            className="w-full p-3 rounded-xl transition-all flex items-center gap-3 text-left"
-                                            style={{
-                                                backgroundColor: selectedUserId === user.id ? 'var(--color-primary-subtle)' : 'var(--bg-secondary)',
-                                                border: selectedUserId === user.id ? '1px solid var(--color-primary)' : '1px solid var(--border-color)'
-                                            }}
-                                        >
-                                            <div
-                                                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                                                style={{ backgroundColor: 'var(--color-primary)' }}
+                                    filteredUsers.map((user) => {
+                                        const isSelected = selectedUserIds.includes(user.id);
+                                        return (
+                                            <button
+                                                key={user.id}
+                                                onClick={() => toggleUserSelection(user.id)}
+                                                className="w-full p-3 rounded-xl transition-all flex items-center gap-3 text-left"
+                                                style={{
+                                                    backgroundColor: isSelected ? 'var(--color-primary-subtle)' : 'var(--bg-secondary)',
+                                                    border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--border-color)'
+                                                }}
                                             >
-                                                <User className="w-5 h-5 text-white" />
-                                            </div>
-                                            <div className="flex-1 overflow-hidden">
-                                                <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user.name}</p>
-                                                <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
-                                            </div>
-                                            <span className={`badge ${user.role === 'ADMIN' ? 'badge-primary' : 'badge-info'}`}>
-                                                {user.role}
-                                            </span>
-                                        </button>
-                                    ))
+                                                {/* Checkbox */}
+                                                <div
+                                                    className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                                                    style={{
+                                                        backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent',
+                                                        border: isSelected ? 'none' : '2px solid var(--border-color)'
+                                                    }}
+                                                >
+                                                    {isSelected && <Check className="w-4 h-4 text-white" />}
+                                                </div>
+
+                                                <div
+                                                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                                                    style={{ backgroundColor: 'var(--color-primary)' }}
+                                                >
+                                                    <User className="w-5 h-5 text-white" />
+                                                </div>
+                                                <div className="flex-1 overflow-hidden">
+                                                    <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user.name}</p>
+                                                    <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+                                                </div>
+                                                <span className={`badge ${user.role === 'ADMIN' ? 'badge-primary' : 'badge-info'}`}>
+                                                    {user.role}
+                                                </span>
+                                            </button>
+                                        );
+                                    })
                                 ) : (
                                     <div className="empty-state py-8">
                                         <div className="empty-state-icon">
@@ -260,7 +336,7 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                                 </button>
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={submitting || !selectedUserId || !localTeamId}
+                                    disabled={submitting || selectedUserIds.length === 0 || !localTeamId}
                                     className="btn btn-primary flex-1"
                                 >
                                     {submitting ? (
@@ -271,7 +347,7 @@ const AddMemberModal = ({ isOpen, onClose, teamId, existingMembers, onMemberAdde
                                     ) : (
                                         <>
                                             <UserPlus className="w-5 h-5" />
-                                            Add to Team
+                                            Add to Team {selectedUserIds.length > 0 && `(${selectedUserIds.length})`}
                                         </>
                                     )}
                                 </button>

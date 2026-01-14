@@ -6,12 +6,13 @@ import { validateTeamName, validateNumericId } from '../utils/validation.js';
 /**
  * Create a new team
  * POST /api/teams
- * Requires: ADMIN role
+ * Requires: Any authenticated user (ADMIN or MEMBER)
  */
 export const createTeam = async (req, res, next) => {
   try {
     const { name } = req.body;
     const ownerId = req.user.userId;
+    const ownerRole = req.user.role; // Pass the user's role (ADMIN or MEMBER)
 
     if (!name) {
       throw new ValidationError('Team name is required');
@@ -19,12 +20,17 @@ export const createTeam = async (req, res, next) => {
 
     const validatedName = validateTeamName(name);
 
-    Logger.debug('Creating team', { ownerId, teamName: validatedName });
+    Logger.debug('Creating team', { ownerId, teamName: validatedName, userRole: ownerRole });
 
-    // Create the team with the authenticated user as the owner
-    const newTeam = await TeamModel.create(validatedName, ownerId);
+    // Create the team with the authenticated user as the owner (includes ownership tracking)
+    const newTeam = await TeamModel.create(validatedName, ownerId, ownerRole);
 
-    Logger.info('Team created successfully', { teamId: newTeam.id, ownerId, name: validatedName });
+    Logger.info('Team created successfully', { 
+      teamId: newTeam.id, 
+      ownerId, 
+      name: validatedName, 
+      ownerRole
+    });
 
     return res.status(201).json({
       success: true,
@@ -200,6 +206,70 @@ export const addMemberToTeam = async (req, res, next) => {
       success: false,
       errorCode: 'ADD_MEMBER_ERROR',
       message: 'Failed to add member to team',
+    });
+  }
+};
+
+/**
+ * Delete a team
+ * DELETE /api/teams/:id
+ * Requires: Team creator (admin or member who created the team)
+ * Only the user who created the team can delete it
+ */
+export const deleteTeam = async (req, res, next) => {
+  try {
+    const { id: teamId } = req.params;
+    const requestingUserId = req.user.userId;
+
+    // Validate team ID
+    let validatedTeamId;
+    try {
+      validatedTeamId = validateNumericId(teamId);
+    } catch (error) {
+      throw new ValidationError('Invalid team ID format');
+    }
+
+    Logger.debug('Delete team request', { teamId: validatedTeamId, userId: requestingUserId });
+
+    // Check if team exists
+    const team = await TeamModel.findById(validatedTeamId);
+    if (!team) {
+      throw new NotFoundError('Team');
+    }
+
+    // Authorization: Only the team creator can delete it
+    // Check if user is the team owner
+    if (team.owner_id !== requestingUserId) {
+      throw new AuthorizationError('You can only delete teams you created');
+    }
+
+    // Delete team (will cascade delete team members, tasks, chat messages, invitations, etc.)
+    await TeamModel.deleteTeam(validatedTeamId);
+
+    Logger.info('Team deleted successfully', {
+      teamId: validatedTeamId,
+      deletedBy: requestingUserId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Team deleted successfully',
+    });
+
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthorizationError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        errorCode: error.errorCode,
+        message: error.message,
+      });
+    }
+
+    Logger.error('Delete team error', error, { userId: req.user?.userId });
+    return res.status(500).json({
+      success: false,
+      errorCode: 'TEAM_DELETE_ERROR',
+      message: 'Failed to delete team',
     });
   }
 };

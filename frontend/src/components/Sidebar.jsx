@@ -17,7 +17,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
-const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
+const Sidebar = ({ onInviteMember, onCreateTask, onAddMember, onCreateMemberTask, onCreateTeam, onBulkInvite, onBulkCreateUsers }) => {
     const { user, logout, isAdmin } = useAuth();
     const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(false);
@@ -52,7 +52,7 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
     ];
 
     // Admin quick actions
-    const quickActions = isAdmin ? [
+    const adminQuickActions = isAdmin ? [
         {
             icon: ClipboardList,
             label: 'Create Task',
@@ -70,8 +70,38 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
             label: 'Invite Member',
             onClick: onInviteMember,
             color: '#059669'
+        },
+        {
+            icon: Users,
+            label: 'Bulk Invite',
+            onClick: onBulkInvite,
+            color: '#10b981'
+        },
+        {
+            icon: UserPlus,
+            label: 'Bulk Add Users',
+            onClick: onBulkCreateUsers,
+            color: '#0891b2'
         }
     ] : [];
+
+    // Member quick actions
+    const memberQuickActions = !isAdmin ? [
+        {
+            icon: Plus,
+            label: 'Create Team',
+            onClick: onCreateTeam,
+            color: '#166534'
+        },
+        {
+            icon: ClipboardList,
+            label: 'Create Task',
+            onClick: onCreateMemberTask,
+            color: '#22c55e'
+        }
+    ] : [];
+
+    const quickActions = isAdmin ? adminQuickActions : memberQuickActions;
 
     return (
         <motion.aside
@@ -106,8 +136,8 @@ const Sidebar = ({ onInviteMember, onCreateTask, onAddMember }) => {
                 </button>
             </div>
 
-            {/* Quick Actions (Admin Only) */}
-            {isAdmin && quickActions.length > 0 && (
+            {/* Quick Actions (Admin and Member) */}
+            {quickActions.length > 0 && (
                 <div className="p-3 border-b border-gray-200">
                     {!collapsed && (
                         <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">Quick Actions</p>

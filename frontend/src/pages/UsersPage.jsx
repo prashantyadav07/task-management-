@@ -10,15 +10,17 @@ import {
     Shield,
     User,
     ClipboardList,
-    Eye
+    Eye,
+    Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI, tasksAPI } from '../services/api';
 import AssignTaskModal from '../components/modals/AssignTaskModal';
 import UserDetailModal from '../components/modals/UserDetailModal';
+import DeleteUserConfirmationModal from '../components/modals/DeleteUserConfirmationModal';
 
 const UsersPage = () => {
-    const { isAdmin } = useAuth();
+    const { isAdmin, user } = useAuth();
     const [users, setUsers] = useState([]);
     const [userCount, setUserCount] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -26,6 +28,7 @@ const UsersPage = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [tasks, setTasks] = useState([]);
 
     const fetchUsers = async () => {
@@ -66,6 +69,16 @@ const UsersPage = () => {
     const handleAssignTask = (user) => {
         setSelectedUser(user);
         setIsAssignModalOpen(true);
+    };
+
+    const handleDeleteUser = (userToDelete) => {
+        setSelectedUser(userToDelete);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleDeleteSuccess = () => {
+        // Refresh user list
+        fetchUsers();
     };
 
     const getRoleBadge = (role) => {
@@ -150,9 +163,9 @@ const UsersPage = () => {
             {/* Users Grid */}
             {filteredUsers.length > 0 ? (
                 <div className="grid-cards">
-                    {filteredUsers.map((user, index) => (
+                    {filteredUsers.map((currentUser, index) => (
                         <motion.div
-                            key={user.id}
+                            key={currentUser.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
@@ -166,41 +179,49 @@ const UsersPage = () => {
                                 >
                                     <User className="w-7 h-7 text-white" />
                                 </div>
-                                <span className={`badge ${getRoleBadge(user.role)}`}>
-                                    {user.role}
+                                <span className={`badge ${getRoleBadge(currentUser.role)}`}>
+                                    {currentUser.role}
                                 </span>
                             </div>
 
                             {/* User Info */}
                             <h3 className="text-xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                                {user.name}
+                                {currentUser.name}
                             </h3>
                             <div className="flex items-center gap-2 text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
                                 <Mail className="w-4 h-4" />
-                                <span className="truncate">{user.email}</span>
+                                <span className="truncate">{currentUser.email}</span>
                             </div>
-                            {user.created_at && (
+                            {currentUser.created_at && (
                                 <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
                                     <Calendar className="w-3.5 h-3.5" />
-                                    <span>Joined {new Date(user.created_at).toLocaleDateString()}</span>
+                                    <span>Joined {new Date(currentUser.created_at).toLocaleDateString()}</span>
                                 </div>
                             )}
 
                             {/* Actions */}
                             <div className="mt-4 pt-4 flex gap-2" style={{ borderTop: '1px solid var(--border-color)' }}>
                                 <button
-                                    onClick={() => handleViewDetails(user)}
+                                    onClick={() => handleViewDetails(currentUser)}
                                     className="btn btn-secondary flex-1 text-sm py-2"
                                 >
                                     <Eye className="w-4 h-4" />
                                     Details
                                 </button>
                                 <button
-                                    onClick={() => handleAssignTask(user)}
+                                    onClick={() => handleAssignTask(currentUser)}
                                     className="btn btn-primary flex-1 text-sm py-2"
                                 >
                                     <ClipboardList className="w-4 h-4" />
-                                    Assign Task
+                                    Assign
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteUser(currentUser)}
+                                    disabled={currentUser.id === user?.id}
+                                    className="btn btn-danger text-sm py-2"
+                                    title={currentUser.id === user?.id ? 'Cannot delete your own account' : 'Delete user'}
+                                >
+                                    <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         </motion.div>
@@ -250,6 +271,16 @@ const UsersPage = () => {
                     setIsDetailModalOpen(false);
                     setIsAssignModalOpen(true);
                 }}
+            />
+
+            <DeleteUserConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setSelectedUser(null);
+                }}
+                user={selectedUser}
+                onDeleteSuccess={handleDeleteSuccess}
             />
         </div>
     );

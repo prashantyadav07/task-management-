@@ -239,3 +239,37 @@ export default {
   sendPasswordResetEmail,
   sendInviteEmail
 };
+
+/**
+ * Send team invitation email (enhanced version for team creation by members)
+ * @param {string} email - Recipient email
+ * @param {string} teamName - Name of the team
+ * @param {string} invitationToken - Unique invitation token
+ * @param {string} invitedByName - Name of the person who sent the invitation
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendTeamInvitationEmail = async (email, teamName, invitationToken, invitedByName) => {
+  const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/invite/${invitationToken}`;
+
+  return sendEmail({
+    to: email,
+    subject: `You've been invited to join ${teamName}`,
+    text: `${invitedByName} invited you to join the team "${teamName}". Click the link to accept the invitation: ${inviteUrl}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #3b82f6; margin-top: 0;">Team Invitation</h2>
+          <p>Hi there!</p>
+          <p><strong>${invitedByName}</strong> has invited you to join the team <strong>${teamName}</strong>.</p>
+          <p style="margin: 24px 0;">
+            <a href="${inviteUrl}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">Accept Invitation</a>
+          </p>
+          <p style="color: #666; font-size: 14px;">Or copy this link: <br><a href="${inviteUrl}" style="color: #3b82f6;">${inviteUrl}</a></p>
+          <p style="color: #666; font-size: 14px;">This invitation will expire in 24 hours.</p>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+        <p style="color: #999; font-size: 12px;">This is an automated email from TaskFlow. If you didn't expect this invitation, you can safely ignore this email.</p>
+      </div>
+    `
+  });
+};

@@ -1,14 +1,17 @@
 import pool from '../config/db.js';
 import QUERIES from '../constants/queries.js';
 import { Logger } from '../utils/logger.js';
-import { DatabaseError } from '../utils/errors.js';
+import { DatabaseError, NotFoundError } from '../utils/errors.js';
 
 const TeamModel = {
   /**
-   * Create a new team and add owner as member
+   * Create a new team and add owner as member (with ownership tracking)
+   * @param {string} name - Team name
+   * @param {number} ownerId - Owner user ID
+   * @param {string} [ownerRole='MEMBER'] - Role of the owner (ADMIN or MEMBER)
    * @throws {DatabaseError}
    */
-  create: async (name, ownerId) => {
+  create: async (name, ownerId, ownerRole = 'MEMBER') => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -20,9 +23,12 @@ const TeamModel = {
       // Add the owner as the first member of the team
       await client.query(QUERIES.TEAM.ADD_MEMBER, [team.id, ownerId]);
 
+      // Track ownership for delete permissions
+      await client.query(QUERIES.TEAM_OWNERSHIP.CREATE, [team.id, ownerId, ownerRole]);
+
       await client.query('COMMIT');
 
-      Logger.debug('Team created successfully', { teamId: team.id, ownerId, teamName: name });
+      Logger.debug('Team created successfully', { teamId: team.id, ownerId, teamName: name, ownerRole });
       return team;
     } catch (error) {
       await client.query('ROLLBACK');
@@ -142,6 +148,39 @@ const TeamModel = {
     } catch (error) {
       Logger.error('Failed to check team membership', error, { teamId, userId });
       throw new DatabaseError('Failed to check team membership', error);
+    } finally {
+      client.release();
+    }
+  },
+
+  /**
+   * Delete a team and all associated data (members, tasks, chat, invitations)
+   * Foreign key cascades handle cleanup of child records
+   * @throws {DatabaseError}
+   */
+  deleteTeam: async (teamId) => {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Delete team and all related data (cascaded by foreign keys)
+      const result = await client.query('DELETE FROM teams WHERE id = $1', [teamId]);
+
+      if (result.rowCount === 0) {
+        throw new NotFoundError('Team not found');
+      }
+
+      await client.query('COMMIT');
+
+      Logger.info('Team deleted successfully', { teamId });
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      Logger.error('Failed to delete team', error, { teamId });
+      throw new DatabaseError('Failed to delete team', error);
     } finally {
       client.release();
     }

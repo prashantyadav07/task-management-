@@ -9,18 +9,23 @@ import {
     UserPlus,
     CheckSquare,
     User,
-    Crown
+    Crown,
+    Trash2,
+    MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { teamsAPI, tasksAPI } from '../services/api';
 import InviteMemberModal from '../components/modals/InviteMemberModal';
 import AddMemberModal from '../components/modals/AddMemberModal';
 import CreateTaskModal from '../components/modals/CreateTaskModal';
+import CreateMemberTaskModal from '../components/modals/CreateMemberTaskModal';
+import BulkInviteModal from '../components/modals/BulkInviteModal';
 import TaskCard from '../components/TaskCard';
+import TeamChatTab from '../components/TeamChatTab';
 
 const TeamDetailPage = () => {
     const { id } = useParams();
-    const { isAdmin } = useAuth();
+    const { isAdmin, user } = useAuth();
 
     const [team, setTeam] = useState(null);
     const [members, setMembers] = useState([]);
@@ -30,6 +35,12 @@ const TeamDetailPage = () => {
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+    const [isCreateMemberTaskModalOpen, setIsCreateMemberTaskModalOpen] = useState(false);
+    const [isBulkInviteModalOpen, setIsBulkInviteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Check if current user is a member of this team
+    const [isMember, setIsMember] = useState(false);
 
     const fetchTeamData = async () => {
         try {
@@ -43,6 +54,11 @@ const TeamDetailPage = () => {
             setTeam(currentTeam);
             setMembers(membersRes.data.members || []);
             setTasks(tasksRes.data.tasks || []);
+
+            // Check if current user is a team member or owner
+            const membersList = membersRes.data.members || [];
+            const isTeamMember = membersList.some(m => m.id === user?.id) || currentTeam?.owner_id === user?.id;
+            setIsMember(isTeamMember);
         } catch (error) {
             console.error('Failed to fetch team data:', error);
         } finally {
@@ -60,6 +76,23 @@ const TeamDetailPage = () => {
 
     const handleTaskCreated = (newTask) => {
         setTasks([...tasks, newTask]);
+    };
+
+    const handleDeleteTeam = async () => {
+        if (!window.confirm(`Are you sure you want to delete "${team.name}"? This action cannot be undone and will delete all tasks and chat messages.`)) {
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            await teamsAPI.deleteTeam(id);
+            // Redirect to teams page after successful deletion
+            window.location.href = '/teams';
+        } catch (error) {
+            console.error('Failed to delete team:', error);
+            alert(error.response?.data?.message || 'Failed to delete team. Please try again.');
+            setIsDeleting(false);
+        }
     };
 
     if (loading) {
@@ -111,15 +144,9 @@ const TeamDetailPage = () => {
                         </div>
                     </div>
 
+                    {/* Admin-only Actions */}
                     {isAdmin && (
                         <div className="flex items-center gap-3 flex-wrap">
-                            <button
-                                onClick={() => setIsInviteModalOpen(true)}
-                                className="btn btn-secondary"
-                            >
-                                <UserPlus className="w-5 h-5" />
-                                Invite Member
-                            </button>
                             <button
                                 onClick={() => setIsAddMemberModalOpen(true)}
                                 className="btn btn-secondary"
@@ -134,6 +161,61 @@ const TeamDetailPage = () => {
                                 <CheckSquare className="w-5 h-5" />
                                 Create Task
                             </button>
+                            {team.owner_id === user?.id && (
+                                <button
+                                    onClick={handleDeleteTeam}
+                                    disabled={isDeleting}
+                                    className="btn btn-danger"
+                                >
+                                    {isDeleting ? (
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="w-5 h-5" />
+                                    )}
+                                    Delete Team
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Member Actions (for team creators and members) */}
+                    {!isAdmin && isMember && (
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <button
+                                onClick={() => setIsInviteModalOpen(true)}
+                                className="btn btn-secondary"
+                            >
+                                <UserPlus className="w-5 h-5" />
+                                Invite Member
+                            </button>
+                            <button
+                                onClick={() => setIsBulkInviteModalOpen(true)}
+                                className="btn btn-secondary"
+                            >
+                                <Users className="w-5 h-5" />
+                                Bulk Invite
+                            </button>
+                            <button
+                                onClick={() => setIsCreateMemberTaskModalOpen(true)}
+                                className="btn btn-primary"
+                            >
+                                <CheckSquare className="w-5 h-5" />
+                                Create Task
+                            </button>
+                            {team.owner_id === user?.id && (
+                                <button
+                                    onClick={handleDeleteTeam}
+                                    disabled={isDeleting}
+                                    className="btn btn-danger"
+                                >
+                                    {isDeleting ? (
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="w-5 h-5" />
+                                    )}
+                                    Delete Team
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -168,6 +250,23 @@ const TeamDetailPage = () => {
                         Tasks ({tasks.length})
                     </span>
                     {activeTab === 'tasks' && (
+                        <motion.div
+                            layoutId="activeTab"
+                            className="absolute bottom-0 left-0 right-0 h-0.5"
+                            style={{ backgroundColor: 'var(--color-primary)' }}
+                        />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('chat')}
+                    className="px-4 py-3 font-medium transition-all relative"
+                    style={{ color: activeTab === 'chat' ? 'var(--color-primary)' : 'var(--text-secondary)' }}
+                >
+                    <span className="flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4" />
+                        Chat
+                    </span>
+                    {activeTab === 'chat' && (
                         <motion.div
                             layoutId="activeTab"
                             className="absolute bottom-0 left-0 right-0 h-0.5"
@@ -237,9 +336,9 @@ const TeamDetailPage = () => {
                                 <CheckSquare className="w-8 h-8" />
                             </div>
                             <p className="empty-state-title">No tasks in this team yet</p>
-                            {isAdmin && (
+                            {(isAdmin || isMember) && (
                                 <button
-                                    onClick={() => setIsCreateTaskModalOpen(true)}
+                                    onClick={() => isAdmin ? setIsCreateTaskModalOpen(true) : setIsCreateMemberTaskModalOpen(true)}
                                     className="btn btn-primary mt-4"
                                 >
                                     Create First Task
@@ -247,6 +346,12 @@ const TeamDetailPage = () => {
                             )}
                         </div>
                     )}
+                </div>
+            )}
+
+            {activeTab === 'chat' && (
+                <div>
+                    <TeamChatTab teamId={parseInt(id)} />
                 </div>
             )}
 
@@ -268,6 +373,17 @@ const TeamDetailPage = () => {
                 onClose={() => setIsCreateTaskModalOpen(false)}
                 teamId={parseInt(id)}
                 members={members}
+                onTaskCreated={handleTaskCreated}
+            />
+            <BulkInviteModal
+                isOpen={isBulkInviteModalOpen}
+                onClose={() => setIsBulkInviteModalOpen(false)}
+                teamId={parseInt(id)}
+                teamName={team?.name}
+            />
+            <CreateMemberTaskModal
+                isOpen={isCreateMemberTaskModalOpen}
+                onClose={() => setIsCreateMemberTaskModalOpen(false)}
                 onTaskCreated={handleTaskCreated}
             />
         </div>

@@ -5,8 +5,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { teamsAPI } from '../services/api';
 import CreateTaskModal from './modals/CreateTaskModal';
+import CreateMemberTaskModal from './modals/CreateMemberTaskModal';
+import CreateTeamModal from './modals/CreateTeamModal';
 import AddMemberModal from './modals/AddMemberModal';
 import InviteMemberModal from './modals/InviteMemberModal';
+import BulkInviteModal from './modals/BulkInviteModal';
+import BulkInviteTeamSelectorModal from './modals/BulkInviteTeamSelectorModal';
+import BulkCreateUsersModal from './modals/BulkCreateUsersModal';
 
 const Layout = () => {
     const { isAdmin } = useAuth();
@@ -15,8 +20,14 @@ const Layout = () => {
 
     // Modal states
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+    const [isCreateMemberTaskModalOpen, setIsCreateMemberTaskModalOpen] = useState(false);
+    const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
     const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
     const [isInviteMemberModalOpen, setIsInviteMemberModalOpen] = useState(false);
+    const [isBulkInviteTeamSelectorOpen, setIsBulkInviteTeamSelectorOpen] = useState(false);
+    const [isBulkInviteModalOpen, setIsBulkInviteModalOpen] = useState(false);
+    const [selectedTeamForBulkInvite, setSelectedTeamForBulkInvite] = useState(null);
+    const [isBulkCreateUsersModalOpen, setIsBulkCreateUsersModalOpen] = useState(false);
 
     // Data for modals
     const [teams, setTeams] = useState([]);
@@ -37,10 +48,8 @@ const Layout = () => {
 
     // Fetch teams for modals
     useEffect(() => {
-        if (isAdmin) {
-            fetchTeams();
-        }
-    }, [isAdmin]);
+        fetchTeams();
+    }, []);
 
     const fetchTeams = async () => {
         try {
@@ -66,8 +75,22 @@ const Layout = () => {
     // Modal handlers
     const modalHandlers = {
         onCreateTask: () => setIsCreateTaskModalOpen(true),
+        onCreateMemberTask: () => setIsCreateMemberTaskModalOpen(true),
+        onCreateTeam: () => setIsCreateTeamModalOpen(true),
         onAddMember: () => setIsAddMemberModalOpen(true),
-        onInviteMember: () => setIsInviteMemberModalOpen(true)
+        onInviteMember: () => setIsInviteMemberModalOpen(true),
+        onBulkInvite: () => setIsBulkInviteTeamSelectorOpen(true),
+        onBulkCreateUsers: () => setIsBulkCreateUsersModalOpen(true),
+    };
+
+    const handleTeamSelected = (team) => {
+        setSelectedTeamForBulkInvite(team);
+        setIsBulkInviteModalOpen(true);
+    };
+
+    const handleBulkInviteClose = () => {
+        setIsBulkInviteModalOpen(false);
+        setSelectedTeamForBulkInvite(null);
     };
 
     return (
@@ -85,18 +108,22 @@ const Layout = () => {
             {!isMobile && (
                 <Sidebar
                     onCreateTask={modalHandlers.onCreateTask}
+                    onCreateMemberTask={modalHandlers.onCreateMemberTask}
+                    onCreateTeam={modalHandlers.onCreateTeam}
                     onAddMember={modalHandlers.onAddMember}
                     onInviteMember={modalHandlers.onInviteMember}
+                    onBulkInvite={modalHandlers.onBulkInvite}
+                    onBulkCreateUsers={modalHandlers.onBulkCreateUsers}
                 />
             )}
 
             {/* Main Content */}
             <main
                 className={`min-h-screen transition-all duration-300 ${isMobile
-                        ? 'ml-0 pt-16'
-                        : sidebarCollapsed
-                            ? 'ml-20'
-                            : 'ml-64'
+                    ? 'ml-0 pt-16'
+                    : sidebarCollapsed
+                        ? 'ml-20'
+                        : 'ml-64'
                     }`}
             >
                 <div className={`${isMobile ? 'p-4' : 'p-6 lg:p-8'}`}>
@@ -104,7 +131,7 @@ const Layout = () => {
                 </div>
             </main>
 
-            {/* Global Modals for Sidebar/Navbar Actions */}
+            {/* Global Modals */}
             {isAdmin && (
                 <>
                     <CreateTaskModal
@@ -113,7 +140,6 @@ const Layout = () => {
                         teams={teams}
                         onTaskCreated={() => {
                             setIsCreateTaskModalOpen(false);
-                            // Optionally refresh data
                         }}
                     />
 
@@ -130,6 +156,50 @@ const Layout = () => {
                         isOpen={isInviteMemberModalOpen}
                         onClose={() => setIsInviteMemberModalOpen(false)}
                         teams={teams}
+                    />
+
+                    <BulkInviteTeamSelectorModal
+                        isOpen={isBulkInviteTeamSelectorOpen}
+                        onClose={() => setIsBulkInviteTeamSelectorOpen(false)}
+                        teams={teams}
+                        onTeamSelected={handleTeamSelected}
+                    />
+
+                    <BulkInviteModal
+                        isOpen={isBulkInviteModalOpen}
+                        onClose={handleBulkInviteClose}
+                        teamId={selectedTeamForBulkInvite?.id}
+                        teamName={selectedTeamForBulkInvite?.name}
+                    />
+
+                    <BulkCreateUsersModal
+                        isOpen={isBulkCreateUsersModalOpen}
+                        onClose={() => setIsBulkCreateUsersModalOpen(false)}
+                        onSuccess={() => {
+                            // Optionally refresh data or show notification
+                        }}
+                    />
+                </>
+            )}
+
+            {/* Member Modals */}
+            {!isAdmin && (
+                <>
+                    <CreateMemberTaskModal
+                        isOpen={isCreateMemberTaskModalOpen}
+                        onClose={() => setIsCreateMemberTaskModalOpen(false)}
+                        onTaskCreated={() => {
+                            setIsCreateMemberTaskModalOpen(false);
+                        }}
+                    />
+
+                    <CreateTeamModal
+                        isOpen={isCreateTeamModalOpen}
+                        onClose={() => setIsCreateTeamModalOpen(false)}
+                        onTeamCreated={() => {
+                            setIsCreateTeamModalOpen(false);
+                            fetchTeams();
+                        }}
                     />
                 </>
             )}

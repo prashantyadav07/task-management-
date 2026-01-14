@@ -1,8 +1,10 @@
 import UserModel from '../models/user.model.js';
 import TaskModel from '../models/task.model.js';
+import pool from '../config/db.js';
+import bcrypt from 'bcrypt';
 import { Logger } from '../utils/logger.js';
 import { ValidationError, NotFoundError, DatabaseError } from '../utils/errors.js';
-import { validateNumericId, validateUserId } from '../utils/validation.js';
+import { validateNumericId, validateUserId, validateEmail, validatePassword, validateUserName } from '../utils/validation.js';
 
 /**
  * Get all registered users on the platform
@@ -302,6 +304,257 @@ export const assignTaskToMultipleUsers = async (req, res, next) => {
       success: false,
       errorCode: 'BULK_TASK_ASSIGNMENT_ERROR',
       message: 'Failed to assign task to users',
+    });
+  }
+};
+/**
+ * Delete a member from the platform (admin only)
+ * DELETE /api/users/:userId
+ * Query: ?hard=true for hard delete (default: soft delete)
+ */
+export const deleteMember = async (req, res, next) => {
+  try {
+    const { userId: memberIdToDelete } = req.params;
+    const adminId = req.user.userId;
+    const { hard = false } = req.query;
+
+    // Validate user ID
+    let validatedUserId;
+    try {
+      validatedUserId = validateUserId(memberIdToDelete);
+    } catch (error) {
+      throw new ValidationError('Invalid user ID format');
+    }
+
+    // Prevent admin from deleting themselves
+    if (validatedUserId === adminId) {
+      throw new ValidationError('You cannot delete your own admin account');
+    }
+
+    Logger.debug('Deleting member', { memberId: validatedUserId, adminId, hard });
+
+    // Verify user exists
+    const user = await UserModel.findById(validatedUserId);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    let result;
+    if (hard === 'true') {
+      // Hard delete - permanently remove user and all associated data
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+
+        // Delete user's tasks
+        await client.query('DELETE FROM tasks WHERE assigned_to_user_id = $1 OR assigned_by_user_id = $1 OR completed_by_user_id = $1', [validatedUserId]);
+
+        // Remove user from team members
+        await client.query('DELETE FROM team_members WHERE user_id = $1', [validatedUserId]);
+
+        // Delete chat messages
+        await client.query('DELETE FROM team_chat_messages WHERE user_id = $1', [validatedUserId]);
+
+        // Delete invites where user is invitee
+        await client.query('DELETE FROM invites WHERE email = (SELECT email FROM users WHERE id = $1)', [validatedUserId]);
+
+        // Update teams owned by user
+        await client.query('DELETE FROM teams WHERE owner_id = $1', [validatedUserId]);
+
+        // Finally delete the user
+        const userResult = await client.query('DELETE FROM users WHERE id = $1 RETURNING id', [validatedUserId]);
+
+        await client.query('COMMIT');
+
+        result = { success: true, userId: validatedUserId, method: 'hard_delete' };
+        Logger.info('User hard deleted', { userId: validatedUserId, adminId });
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    } else {
+      // Soft delete - mark user as inactive but keep data
+      // Note: This assumes you add an 'is_active' or 'deleted_at' column to users table
+      // For now, we'll document this requires schema update
+      throw new ValidationError('Soft delete for users requires database schema update. Use ?hard=true for complete deletion.');
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Member deleted successfully',
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof NotFoundError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        errorCode: error.errorCode,
+        message: error.message,
+      });
+    }
+
+    Logger.error('Delete member error', error, { userId: req.user?.userId });
+    res.status(500).json({
+      success: false,
+      errorCode: 'MEMBER_DELETE_ERROR',
+      message: 'Failed to delete member',
+    });
+  }
+};
+
+/**
+ * Bulk create multiple users (admin only)
+ * POST /api/users/bulk-create
+ * Body: { users: [{ name, email, password }, ...] }
+ * Requires: ADMIN role
+ */
+export const bulkCreateUsers = async (req, res, next) => {
+  try {
+    const { users } = req.body;
+    const adminUserId = req.user.userId;
+
+    // Validate input
+    if (!users || !Array.isArray(users) || users.length === 0) {
+      throw new ValidationError('Users array is required and must not be empty');
+    }
+
+    if (users.length > 50) {
+      throw new ValidationError('Cannot create more than 50 users at once');
+    }
+
+    Logger.debug('Bulk user creation attempt', {
+      adminUserId,
+      userCount: users.length,
+    });
+
+    const results = [];
+    let created = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    // Process each user
+    for (const userData of users) {
+      try {
+        const { name, email, password } = userData;
+
+        // Validate individual user data
+        if (!name || !email || !password) {
+          results.push({
+            email: email || 'unknown',
+            status: 'failed',
+            reason: 'Missing required fields (name, email, or password)',
+          });
+          failed++;
+          continue;
+        }
+
+        // Validate email and password format
+        let validatedEmail;
+        let validatedName;
+        let validatedPassword;
+
+        try {
+          validatedEmail = validateEmail(email);
+          validatedName = validateUserName(name);
+          validatedPassword = validatePassword(password);
+        } catch (validationError) {
+          results.push({
+            email,
+            status: 'failed',
+            reason: validationError.message,
+          });
+          failed++;
+          continue;
+        }
+
+        // Check if user already exists
+        const existingUser = await UserModel.findByEmail(validatedEmail);
+        if (existingUser) {
+          results.push({
+            email: validatedEmail,
+            status: 'skipped',
+            reason: 'User with this email already exists',
+            userId: existingUser.id,
+          });
+          skipped++;
+          continue;
+        }
+
+        // Hash password
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(validatedPassword, saltRounds);
+
+        // Create user
+        const newUser = await UserModel.create(
+          validatedName,
+          validatedEmail,
+          hashedPassword,
+          'MEMBER'
+        );
+
+        results.push({
+          email: validatedEmail,
+          status: 'created',
+          userId: newUser.id,
+        });
+        created++;
+
+        Logger.debug('User created in bulk operation', {
+          userId: newUser.id,
+          email: validatedEmail,
+        });
+
+      } catch (error) {
+        // Handle individual user creation errors
+        Logger.error('Error creating individual user in bulk operation', error, {
+          email: userData.email,
+        });
+
+        results.push({
+          email: userData.email || 'unknown',
+          status: 'failed',
+          reason: error.message || 'Failed to create user',
+        });
+        failed++;
+      }
+    }
+
+    Logger.info('Bulk user creation completed', {
+      adminUserId,
+      total: users.length,
+      created,
+      skipped,
+      failed,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Bulk user creation completed',
+      data: {
+        total: users.length,
+        created,
+        skipped,
+        failed,
+        results,
+      },
+    });
+
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        errorCode: error.errorCode,
+        message: error.message,
+      });
+    }
+
+    Logger.error('Bulk user creation error', error, { userId: req.user?.userId });
+    res.status(500).json({
+      success: false,
+      errorCode: 'BULK_USER_CREATE_ERROR',
+      message: 'Failed to create users',
     });
   }
 };

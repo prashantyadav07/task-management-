@@ -5,7 +5,8 @@ import {
     Plus,
     Loader2,
     Search,
-    ChevronRight
+    ChevronRight,
+    Trash2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -13,11 +14,12 @@ import { teamsAPI } from '../services/api';
 import CreateTeamModal from '../components/modals/CreateTeamModal';
 
 const TeamsPage = () => {
-    const { isAdmin } = useAuth();
+    const { isAdmin, user } = useAuth();
     const [teams, setTeams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [deletingTeamId, setDeletingTeamId] = useState(null);
 
     const fetchTeams = async () => {
         try {
@@ -40,6 +42,26 @@ const TeamsPage = () => {
 
     const handleTeamCreated = (newTeam) => {
         setTeams([...teams, newTeam]);
+    };
+
+    const handleDeleteTeam = async (teamId, teamName, e) => {
+        e.preventDefault(); // Prevent Link navigation
+        e.stopPropagation();
+
+        if (!window.confirm(`Are you sure you want to delete "${teamName}"? This action cannot be undone and will delete all tasks and chat messages.`)) {
+            return;
+        }
+
+        setDeletingTeamId(teamId);
+        try {
+            await teamsAPI.deleteTeam(teamId);
+            setTeams(teams.filter(t => t.id !== teamId));
+        } catch (error) {
+            console.error('Failed to delete team:', error);
+            alert(error.response?.data?.message || 'Failed to delete team. Please try again.');
+        } finally {
+            setDeletingTeamId(null);
+        }
     };
 
     if (loading) {
@@ -73,16 +95,14 @@ const TeamsPage = () => {
                         />
                     </div>
 
-                    {/* Create Team Button (Admin Only) */}
-                    {isAdmin && (
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="btn btn-primary"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Create Team
-                        </button>
-                    )}
+                    {/* Create Team Button (For all users) */}
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="btn btn-primary"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Create Team
+                    </button>
                 </div>
             </div>
 
@@ -98,7 +118,7 @@ const TeamsPage = () => {
                         >
                             <Link
                                 to={`/teams/${team.id}`}
-                                className="card card-hover block transition-all duration-200"
+                                className="card card-hover block transition-all duration-200 relative"
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div
@@ -107,7 +127,24 @@ const TeamsPage = () => {
                                     >
                                         <Users className="w-7 h-7 text-white" />
                                     </div>
-                                    <ChevronRight className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                                    <div className="flex items-center gap-2">
+                                        {team.owner_id === user?.id && (
+                                            <button
+                                                onClick={(e) => handleDeleteTeam(team.id, team.name, e)}
+                                                disabled={deletingTeamId === team.id}
+                                                className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                                style={{ color: 'var(--color-danger)' }}
+                                                title="Delete team"
+                                            >
+                                                {deletingTeamId === team.id ? (
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="w-5 h-5" />
+                                                )}
+                                            </button>
+                                        )}
+                                        <ChevronRight className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                                    </div>
                                 </div>
 
                                 <h3
@@ -154,12 +191,10 @@ const TeamsPage = () => {
                     <p className="empty-state-description">
                         {searchQuery
                             ? 'Try adjusting your search query'
-                            : isAdmin
-                                ? 'Create your first team to get started'
-                                : 'You\'ll be added to teams via invitations'
+                            : 'Create your first team to get started'
                         }
                     </p>
-                    {isAdmin && !searchQuery && (
+                    {!searchQuery && (
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
                             className="btn btn-primary mt-6"
