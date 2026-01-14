@@ -39,7 +39,7 @@ const ChatModel = {
    * Returns messages in chronological order (oldest to newest)
    * @throws {DatabaseError}
    */
-  findByTeam: async (teamId, limit = 100, offset = 0) => {
+  findByTeam: async (teamId, userId, limit = 100, offset = 0) => {
     const client = await pool.connect();
     try {
       const result = await client.query(
@@ -50,14 +50,17 @@ const ChatModel = {
           m.message, 
           TO_CHAR(m.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as created_at,
           m.is_deleted,
+          m.deleted_for_users,
           u.name as user_name,
           u.email as user_email
          FROM team_chat_messages m
          JOIN users u ON m.user_id = u.id
-         WHERE m.team_id = $1 AND m.is_deleted = FALSE
+         WHERE m.team_id = $1 
+         AND m.is_deleted = FALSE
+         AND NOT ($2 = ANY(m.deleted_for_users))
          ORDER BY m.created_at ASC
-         LIMIT $2 OFFSET $3`,
-        [teamId, limit, offset]
+         LIMIT $3 OFFSET $4`,
+        [teamId, userId, limit, offset]
       );
 
       return result.rows;
@@ -128,6 +131,41 @@ const ChatModel = {
       }
       Logger.error('Failed to soft delete chat message', error, { messageId });
       throw new DatabaseError('Failed to delete chat message', error);
+    } finally {
+      client.release();
+    }
+  },
+
+  /**
+   * Delete message for a specific user only
+   * Adds userId to deleted_for_users array
+   * @throws {DatabaseError}
+   */
+  deleteForUser: async (messageId, userId) => {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        `UPDATE team_chat_messages 
+         SET deleted_for_users = array_append(deleted_for_users, $2),
+             updated_at = NOW()
+         WHERE id = $1 
+         AND NOT ($2 = ANY(deleted_for_users))
+         RETURNING id, team_id, user_id, deleted_for_users`,
+        [messageId, userId]
+      );
+
+      if (result.rowCount === 0) {
+        throw new NotFoundError('Message not found or already deleted for this user');
+      }
+
+      Logger.debug('Message deleted for user', { messageId, userId });
+      return result.rows[0];
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      Logger.error('Failed to delete message for user', error, { messageId, userId });
+      throw new DatabaseError('Failed to delete message for user', error);
     } finally {
       client.release();
     }

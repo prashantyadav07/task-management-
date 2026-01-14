@@ -4,6 +4,7 @@ import { Send, Loader2, MessageCircle, Trash2, AlertCircle } from 'lucide-react'
 import { chatAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import socket from '../services/socket';
+import DeleteMessageModal from './modals/DeleteMessageModal';
 
 const TeamChatTab = ({ teamId }) => {
     const { user } = useAuth();
@@ -12,6 +13,8 @@ const TeamChatTab = ({ teamId }) => {
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState('');
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [messageToDelete, setMessageToDelete] = useState(null);
     const messagesEndRef = useRef(null);
 
     // Scroll to bottom of messages
@@ -122,17 +125,33 @@ const TeamChatTab = ({ teamId }) => {
         }
     };
 
-    const handleDeleteMessage = async (messageId) => {
-        if (!window.confirm('Delete this message?')) return;
+    const handleDeleteMessage = (message) => {
+        setMessageToDelete(message);
+        setDeleteModalOpen(true);
+    };
 
+    const handleDeleteForMe = async (messageId) => {
         try {
-            await chatAPI.deleteMessage(messageId);
+            await chatAPI.deleteMessage(messageId, 'me');
+
+            // Remove from local state only
+            setMessages(prev => prev.filter(m => m.id !== messageId));
+        } catch (err) {
+            console.error('Failed to delete message:', err);
+            setError('Failed to delete message');
+            throw err;
+        }
+    };
+
+    const handleDeleteForEveryone = async (messageId) => {
+        try {
+            await chatAPI.deleteMessage(messageId, 'everyone');
 
             // Emit socket event for real-time deletion
             socket.emit('delete_message', {
                 teamId,
                 messageId,
-                isHardDelete: false,
+                deleteType: 'everyone',
             });
 
             // Remove from local state
@@ -140,6 +159,7 @@ const TeamChatTab = ({ teamId }) => {
         } catch (err) {
             console.error('Failed to delete message:', err);
             setError('Failed to delete message');
+            throw err;
         }
     };
 
@@ -230,7 +250,7 @@ const TeamChatTab = ({ teamId }) => {
                                         </div>
                                     )}
 
-                                    <div className="flex items-start gap-2">
+                                    <div className="flex items-start gap-2 group">
                                         <div
                                             className={`px-4 py-2 rounded-2xl ${isMyMessage
                                                 ? 'rounded-tr-sm'
@@ -262,16 +282,14 @@ const TeamChatTab = ({ teamId }) => {
                                             )}
                                         </div>
 
-                                        {isMyMessage && (
-                                            <button
-                                                onClick={() => handleDeleteMessage(message.id)}
-                                                className="p-1 rounded hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                                                style={{ color: 'var(--color-danger)' }}
-                                                title="Delete message"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => handleDeleteMessage(message)}
+                                            className="p-1 rounded hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                                            style={{ color: 'var(--color-danger)' }}
+                                            title="Delete message"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
                                 </div>
                             </motion.div>
@@ -315,6 +333,19 @@ const TeamChatTab = ({ teamId }) => {
                     </button>
                 </form>
             </div>
+
+            {/* Delete Message Modal */}
+            <DeleteMessageModal
+                isOpen={deleteModalOpen}
+                onClose={() => {
+                    setDeleteModalOpen(false);
+                    setMessageToDelete(null);
+                }}
+                message={messageToDelete}
+                currentUserId={user?.id}
+                onDeleteForMe={handleDeleteForMe}
+                onDeleteForEveryone={handleDeleteForEveryone}
+            />
         </div>
     );
 };

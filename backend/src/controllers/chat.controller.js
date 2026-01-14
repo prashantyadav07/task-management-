@@ -34,7 +34,7 @@ export const getTeamMessages = async (req, res, next) => {
 
     Logger.debug('Fetching team messages', { teamId: validatedTeamId, userId, limit, offset });
 
-    const messages = await ChatModel.findByTeam(validatedTeamId, parseInt(limit), parseInt(offset));
+    const messages = await ChatModel.findByTeam(validatedTeamId, userId, parseInt(limit), parseInt(offset));
 
     Logger.info('Team messages retrieved successfully', {
       teamId: validatedTeamId,
@@ -150,13 +150,13 @@ export const createMessage = async (req, res, next) => {
 export const deleteMessage = async (req, res, next) => {
   try {
     const { messageId } = req.params;
-    const { hard = false } = req.query;
+    const { hard = false, deleteType = 'everyone' } = req.query;
     const userId = req.user.userId;
     const userRole = req.user.role;
 
     const validatedMessageId = validateNumericId(messageId);
 
-    Logger.debug('Deleting chat message', { messageId: validatedMessageId, userId, hard });
+    Logger.debug('Deleting chat message', { messageId: validatedMessageId, userId, hard, deleteType });
 
     // Get the message to verify ownership
     const messageRecord = await ChatModel.findById(validatedMessageId);
@@ -164,27 +164,40 @@ export const deleteMessage = async (req, res, next) => {
       throw new NotFoundError('Message not found');
     }
 
-    // Authorization: message sender or admin can delete
-    if (messageRecord.user_id !== userId && userRole !== 'ADMIN') {
-      throw new AuthorizationError('You can only delete your own messages');
-    }
-
     let result;
-    if (hard === 'true' && userRole === 'ADMIN') {
-      // Hard delete (admin only)
-      result = await ChatModel.hardDelete(validatedMessageId);
-      Logger.info('Chat message hard deleted', { messageId: validatedMessageId, userId });
-    } else {
-      // Soft delete (sender or admin)
-      result = await ChatModel.softDelete(validatedMessageId);
-      Logger.info('Chat message soft deleted', { messageId: validatedMessageId, userId });
-    }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Message deleted successfully',
-      data: result,
-    });
+    if (deleteType === 'me') {
+      // Delete for this user only
+      result = await ChatModel.deleteForUser(validatedMessageId, userId);
+      Logger.info('Chat message deleted for user', { messageId: validatedMessageId, userId });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Message deleted for you',
+        data: { ...result, deleteType: 'me' },
+      });
+    } else {
+      // Delete for everyone - requires authorization
+      if (messageRecord.user_id !== userId && userRole !== 'ADMIN') {
+        throw new AuthorizationError('You can only delete your own messages for everyone');
+      }
+
+      if (hard === 'true' && userRole === 'ADMIN') {
+        // Hard delete (admin only)
+        result = await ChatModel.hardDelete(validatedMessageId);
+        Logger.info('Chat message hard deleted', { messageId: validatedMessageId, userId });
+      } else {
+        // Soft delete (sender or admin)
+        result = await ChatModel.softDelete(validatedMessageId);
+        Logger.info('Chat message soft deleted', { messageId: validatedMessageId, userId });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Message deleted for everyone',
+        data: { ...result, deleteType: 'everyone' },
+      });
+    }
   } catch (error) {
     if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof AuthorizationError) {
       return res.status(error.statusCode).json({

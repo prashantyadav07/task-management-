@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-// API Base URL - automatically detects environment
+// API Base URL - Direct hardcoded URLs (no environment variables needed)
+// Automatically detects localhost vs production
 const API_BASE_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:5000/api'
   : 'https://task-management-ten-neon.vercel.app/api';
@@ -121,7 +122,7 @@ export const chatAPI = {
   getTeamMessages: (teamId, limit = 100, offset = 0) =>
     api.get(`/chat/${teamId}?limit=${limit}&offset=${offset}`),
   createMessage: (teamId, message) => api.post(`/chat/${teamId}`, { message }),
-  deleteMessage: (messageId, hard = false) => api.delete(`/chat/message/${messageId}?hard=${hard}`),
+  deleteMessage: (messageId, deleteType = 'everyone') => api.delete(`/chat/message/${messageId}?deleteType=${deleteType}`),
 };
 
 export default api;
