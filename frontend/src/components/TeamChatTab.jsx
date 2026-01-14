@@ -16,8 +16,10 @@ const TeamChatTab = ({ teamId }) => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [messageToDelete, setMessageToDelete] = useState(null);
     const [selectedMessageId, setSelectedMessageId] = useState(null); // For mobile tap interaction
+    const [typingUsers, setTypingUsers] = useState([]); // Track who is typing
     const messagesEndRef = useRef(null);
     const longPressTimerRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
 
     // Scroll to bottom of messages
     const scrollToBottom = () => {
@@ -83,9 +85,30 @@ const TeamChatTab = ({ teamId }) => {
             setMessages(prev => prev.filter(m => m.id !== data.messageId));
         };
 
+        const handleUserTyping = (data) => {
+            console.log('User typing:', data);
+            // Add user to typing list if not already there and not current user
+            if (data.userId !== user.id) {
+                setTypingUsers(prev => {
+                    if (!prev.find(u => u.userId === data.userId)) {
+                        return [...prev, { userId: data.userId, userName: data.userName }];
+                    }
+                    return prev;
+                });
+            }
+        };
+
+        const handleUserStoppedTyping = (data) => {
+            console.log('User stopped typing:', data);
+            // Remove user from typing list
+            setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
+        };
+
         socket.on('joined_team', handleJoinedTeam);
         socket.on('new_message', handleNewMessage);
         socket.on('message_deleted', handleMessageDeleted);
+        socket.on('user_typing', handleUserTyping);
+        socket.on('user_stopped_typing', handleUserStoppedTyping);
 
         // Cleanup
         return () => {
@@ -93,6 +116,8 @@ const TeamChatTab = ({ teamId }) => {
             socket.off('joined_team', handleJoinedTeam);
             socket.off('new_message', handleNewMessage);
             socket.off('message_deleted', handleMessageDeleted);
+            socket.off('user_typing', handleUserTyping);
+            socket.off('user_stopped_typing', handleUserStoppedTyping);
         };
     }, [teamId, user]);
 
@@ -103,6 +128,10 @@ const TeamChatTab = ({ teamId }) => {
 
         setSending(true);
         setError('');
+
+        // Emit stop typing event
+        socket.emit('stop_typing', { teamId, userId: user.id });
+        clearTimeout(typingTimeoutRef.current);
 
         try {
             // Save message to database
@@ -166,6 +195,33 @@ const TeamChatTab = ({ teamId }) => {
             setTimeout(() => {
                 setSelectedMessageId(null);
             }, 3000);
+        }
+    };
+
+    // Handle input change and typing indicator
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setNewMessage(value);
+
+        // Emit typing event
+        if (value.trim()) {
+            socket.emit('typing', {
+                teamId,
+                userId: user.id,
+                userName: user.name
+            });
+
+            // Clear existing timeout
+            clearTimeout(typingTimeoutRef.current);
+
+            // Set timeout to emit stop typing after 2 seconds of inactivity
+            typingTimeoutRef.current = setTimeout(() => {
+                socket.emit('stop_typing', { teamId, userId: user.id });
+            }, 2000);
+        } else {
+            // If input is empty, stop typing
+            socket.emit('stop_typing', { teamId, userId: user.id });
+            clearTimeout(typingTimeoutRef.current);
         }
     };
 
@@ -280,17 +336,15 @@ const TeamChatTab = ({ teamId }) => {
 
                                 {/* Message content */}
                                 <div className={`max-w-md flex flex-col ${isMyMessage ? 'items-end' : 'items-start'}`}>
-                                    {/* Name and timestamp header */}
-                                    {showAvatar && (
-                                        <div className={`flex items-center gap-2 mb-1 ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
-                                            <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-                                                {isMyMessage ? 'You' : message.user_name}
-                                            </span>
-                                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                                {formatTime(message.created_at)}
-                                            </span>
-                                        </div>
-                                    )}
+                                    {/* Name and timestamp header - ALWAYS SHOWN */}
+                                    <div className={`flex items-center gap-2 mb-1 ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
+                                        <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                                            {isMyMessage ? 'You' : message.user_name}
+                                        </span>
+                                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                            {formatTime(message.created_at)}
+                                        </span>
+                                    </div>
 
                                     {/* Message bubble with delete button */}
                                     <div
@@ -301,8 +355,8 @@ const TeamChatTab = ({ teamId }) => {
                                     >
                                         <div
                                             className={`px-4 py-2 rounded-2xl ${isMyMessage
-                                                    ? 'rounded-tr-sm'
-                                                    : 'rounded-tl-sm'
+                                                ? 'rounded-tr-sm'
+                                                : 'rounded-tl-sm'
                                                 }`}
                                             style={{
                                                 backgroundColor: isMyMessage
@@ -317,20 +371,6 @@ const TeamChatTab = ({ teamId }) => {
                                             <p className="text-sm whitespace-pre-wrap break-words">
                                                 {message.message}
                                             </p>
-                                            {/* Timestamp for consecutive messages */}
-                                            {!showAvatar && (
-                                                <span
-                                                    className="text-xs mt-1 block"
-                                                    style={{
-                                                        color: isMyMessage
-                                                            ? 'rgba(255, 255, 255, 0.7)'
-                                                            : 'var(--text-muted)',
-                                                        textAlign: isMyMessage ? 'right' : 'left'
-                                                    }}
-                                                >
-                                                    {formatTime(message.created_at)}
-                                                </span>
-                                            )}
                                         </div>
 
                                         {/* Delete button - visible on hover (desktop) or when selected (mobile) */}
@@ -340,8 +380,8 @@ const TeamChatTab = ({ teamId }) => {
                                                 handleDeleteMessage(message);
                                             }}
                                             className={`p-1 rounded-lg hover:bg-opacity-10 transition-all flex-shrink-0 ${selectedMessageId === message.id
-                                                    ? 'opacity-100' // Always visible when selected on mobile
-                                                    : 'opacity-0 group-hover:opacity-100' // Hover for desktop
+                                                ? 'opacity-100' // Always visible when selected on mobile
+                                                : 'opacity-0 group-hover:opacity-100' // Hover for desktop
                                                 }`}
                                             style={{
                                                 color: 'var(--color-danger)',
@@ -386,13 +426,49 @@ const TeamChatTab = ({ teamId }) => {
                 </div>
             )}
 
+            {/* Typing Indicator */}
+            {typingUsers.length > 0 && (
+                <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                    <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                            <motion.div
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: 'var(--color-primary)' }}
+                                animate={{ scale: [1, 1.2, 1] }}
+                                transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                            />
+                            <motion.div
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: 'var(--color-primary)' }}
+                                animate={{ scale: [1, 1.2, 1] }}
+                                transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                            />
+                            <motion.div
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: 'var(--color-primary)' }}
+                                animate={{ scale: [1, 1.2, 1] }}
+                                transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                            />
+                        </div>
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            {typingUsers.length === 1
+                                ? `${typingUsers[0].userName} is typing...`
+                                : typingUsers.length === 2
+                                    ? `${typingUsers[0].userName} and ${typingUsers[1].userName} are typing...`
+                                    : `${typingUsers[0].userName} and ${typingUsers.length - 1} others are typing...`
+                            }
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* Message Input */}
             <div className="p-4 border-t" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
                 <form onSubmit={handleSendMessage} className="flex gap-3">
                     <input
                         type="text"
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={handleInputChange}
                         placeholder="Type a message..."
                         className="input flex-1"
                         disabled={sending}
