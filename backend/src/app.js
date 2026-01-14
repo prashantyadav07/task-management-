@@ -24,6 +24,8 @@ const corsOptions = {
     'http://localhost:3000',
     'http://localhost:5174',
     'https://task-management-k3fk.vercel.app',
+    'https://task-management-k3fk-prashant-yadavs-projects-1570311f.vercel.app',
+    'https://task-management-k3fk-dxabvzxdl.vercel.app',
     'https://task-management-k3fk-git-main-prashant-yadavs-projects-1570311f.vercel.app',
     'https://task-management-k3fk-pnbzskr2t.vercel.app'
   ],
