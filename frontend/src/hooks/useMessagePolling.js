@@ -23,12 +23,21 @@ export const useMessagePolling = (teamId, isActive = true, pollInterval = 2000) 
      * Fetch initial messages on mount
      */
     const fetchInitialMessages = useCallback(async () => {
-        if (!teamId) return;
+        if (!teamId) {
+            // No teamId - mark as loaded immediately to prevent infinite loading
+            setHasLoaded(true);
+            return;
+        }
 
         try {
             setError(null);
+            console.log('🔄 Fetching initial messages for team:', teamId);
+
             const response = await chatAPI.getTeamMessages(teamId);
-            const fetchedMessages = response.data.data.messages || [];
+            console.log('📡 API Response:', response.data);
+
+            const fetchedMessages = response?.data?.data?.messages || [];
+            console.log('📨 Fetched messages count:', fetchedMessages.length);
 
             // Sort by created_at ascending (oldest first)
             const sortedMessages = fetchedMessages.sort(
@@ -43,16 +52,29 @@ export const useMessagePolling = (teamId, isActive = true, pollInterval = 2000) 
                 if (sortedMessages.length > 0) {
                     const newestMessage = sortedMessages[sortedMessages.length - 1];
                     lastMessageTimestamp.current = newestMessage.created_at;
+                    console.log('✅ Set last timestamp to:', lastMessageTimestamp.current);
                 } else {
                     // No messages yet - use current time
                     lastMessageTimestamp.current = new Date().toISOString();
+                    console.log('✅ No messages yet, set timestamp to now:', lastMessageTimestamp.current);
                 }
             }
         } catch (err) {
-            console.error('Failed to fetch initial messages:', err);
+            console.error('❌ Failed to fetch initial messages:', err);
+            console.error('Error details:', {
+                message: err.message,
+                response: err.response?.data,
+                status: err.response?.status
+            });
+
             if (isMountedRef.current) {
-                setError('Failed to load messages');
-                setHasLoaded(true); // Mark as loaded even on error
+                // Always mark as loaded even on error - prevents infinite loading
+                setHasLoaded(true);
+                setError(err.response?.data?.message || 'Failed to load messages');
+                // Set messages to empty array on error
+                setMessages([]);
+                // Set timestamp to now so polling can start
+                lastMessageTimestamp.current = new Date().toISOString();
             }
         }
     }, [teamId]);
@@ -145,7 +167,9 @@ export const useMessagePolling = (teamId, isActive = true, pollInterval = 2000) 
 
         if (!teamId || !isActive) {
             setIsPolling(false);
-            setHasLoaded(false);
+            // Fix: Set hasLoaded to true when inactive to prevent infinite loading
+            setHasLoaded(true);
+            setMessages([]);
             return;
         }
 
