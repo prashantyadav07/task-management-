@@ -74,41 +74,42 @@ const TeamsPage = () => {
 
     return (
         <div className="animate-fade-in">
-            {/* Header */}
-            <div className="page-header mb-8">
+            {/* Header - Mobile First */}
+            <div className="page-header mb-6 sm:mb-8 md:mb-10">
                 <div>
                     <h1 className="page-title">Teams</h1>
                     <p className="page-subtitle">Manage your team workspace</p>
                 </div>
 
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     {/* Search */}
-                    <div className="relative">
+                    <div className="relative flex-1 sm:flex-initial sm:w-64">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                         <input
                             type="text"
                             placeholder="Search teams..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="input"
-                            style={{ paddingLeft: '3rem', width: '16rem' }}
+                            className="input w-full"
+                            style={{ paddingLeft: '3rem' }}
                         />
                     </div>
 
                     {/* Create Team Button (For all users) */}
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="btn btn-primary"
+                        className="btn btn-primary whitespace-nowrap"
                     >
                         <Plus className="w-5 h-5" />
-                        Create Team
+                        <span className="hidden sm:inline">Create Team</span>
+                        <span className="sm:hidden">Create</span>
                     </button>
                 </div>
             </div>
 
-            {/* Teams Grid */}
+            {/* Teams Grid - Mobile First */}
             {filteredTeams.length > 0 ? (
-                <div className="grid-cards">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
                     {filteredTeams.map((team, index) => (
                         <motion.div
                             key={team.id}
@@ -120,19 +121,19 @@ const TeamsPage = () => {
                                 to={`/teams/${team.id}`}
                                 className="card card-hover block transition-all duration-200 relative"
                             >
-                                <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-start justify-between mb-4 sm:mb-5">
                                     <div
-                                        className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center"
                                         style={{ backgroundColor: 'var(--color-primary)' }}
                                     >
-                                        <Users className="w-7 h-7 text-white" />
+                                        <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {team.owner_id === user?.id && (
                                             <button
                                                 onClick={(e) => handleDeleteTeam(team.id, team.name, e)}
                                                 disabled={deletingTeamId === team.id}
-                                                className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                                className="p-2.5 rounded-lg hover:bg-red-50 transition-colors"
                                                 style={{ color: 'var(--color-danger)' }}
                                                 title="Delete team"
                                             >
@@ -148,7 +149,7 @@ const TeamsPage = () => {
                                 </div>
 
                                 <h3
-                                    className="text-xl font-semibold mb-2"
+                                    className="text-lg sm:text-xl font-semibold mb-2"
                                     style={{ color: 'var(--text-primary)' }}
                                 >
                                     {team.name}
@@ -156,7 +157,7 @@ const TeamsPage = () => {
 
                                 {team.description && (
                                     <p
-                                        className="text-sm line-clamp-2"
+                                        className="text-sm line-clamp-2 mb-4"
                                         style={{ color: 'var(--text-secondary)' }}
                                     >
                                         {team.description}
@@ -180,7 +181,7 @@ const TeamsPage = () => {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="empty-state py-20"
+                    className="empty-state py-16 sm:py-20"
                 >
                     <div className="empty-state-icon">
                         <Users className="w-10 h-10" />

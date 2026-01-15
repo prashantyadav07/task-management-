@@ -63,29 +63,30 @@ const MyTasksPage = () => {
 
     return (
         <div className="animate-fade-in">
-            {/* Header */}
-            <div className="mb-8">
+            {/* Header - Mobile First */}
+            <div className="mb-6 sm:mb-8 md:mb-10">
                 <h1 className="page-title">My Tasks</h1>
                 <p className="page-subtitle">View and manage tasks assigned to you</p>
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2 mb-8">
+            {/* Filters - Mobile First with horizontal scroll fallback */}
+            <div className="flex gap-2 mb-6 sm:mb-8 overflow-x-auto pb-2 -mx-1 px-1">
                 {filterOptions.map((option) => (
                     <button
                         key={option.value}
                         onClick={() => setFilter(option.value)}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all"
+                        className="flex items-center gap-2 px-4 py-3 sm:py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap flex-shrink-0"
                         style={{
                             backgroundColor: filter === option.value ? 'var(--color-primary-subtle)' : 'var(--bg-primary)',
                             color: filter === option.value ? 'var(--color-primary)' : 'var(--text-secondary)',
                             border: filter === option.value ? '1px solid var(--color-primary)' : '1px solid var(--border-color)'
                         }}
                     >
-                        <option.icon className="w-4 h-4" />
-                        {option.label}
+                        <option.icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                        <span className="hidden sm:inline">{option.label}</span>
+                        <span className="sm:hidden">{option.label.split(' ')[0]}</span>
                         <span
-                            className="px-2 py-0.5 rounded-full text-xs"
+                            className="px-2 py-0.5 rounded-full text-xs font-semibold"
                             style={{
                                 backgroundColor: filter === option.value ? 'var(--color-primary)' : 'var(--bg-tertiary)',
                                 color: filter === option.value ? '#fff' : 'var(--text-secondary)'
@@ -97,9 +98,9 @@ const MyTasksPage = () => {
                 ))}
             </div>
 
-            {/* Tasks Grid */}
+            {/* Tasks Grid - Mobile First */}
             {filteredTasks.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
                     {filteredTasks.map((task, index) => (
                         <motion.div
                             key={task.id}
@@ -115,7 +116,7 @@ const MyTasksPage = () => {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="empty-state py-20"
+                    className="empty-state py-16 sm:py-20"
                 >
                     <div className="empty-state-icon">
                         <CheckSquare className="w-10 h-10" />

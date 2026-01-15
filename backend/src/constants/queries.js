@@ -78,13 +78,17 @@ const QUERIES = {
         t.started_at,
         t.completed_at,
         t.due_date,
+        t.created_at,
         u.name as assigned_to_name,
         u.email as assigned_to_email,
+        creator.name as assigned_by_name,
         tm.name as team_name
       FROM tasks t
       LEFT JOIN users u ON t.assigned_to_user_id = u.id
+      LEFT JOIN users creator ON t.assigned_by_user_id = creator.id
       LEFT JOIN teams tm ON t.team_id = tm.id
-      ORDER BY t.assigned_at DESC
+      WHERE t.is_deleted = FALSE OR t.is_deleted IS NULL
+      ORDER BY t.created_at DESC
     `,
 
     // Total in-progress tasks

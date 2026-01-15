@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
     CheckSquare,
@@ -14,6 +14,11 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { tasksAPI, teamsAPI, usersAPI, analyticsAPI } from '../services/api';
 import TaskDetailModal from '../components/modals/TaskDetailModal';
+import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend } from 'chart.js';
+import { Doughnut, Line } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend);
 
 const DashboardPage = () => {
     const { user, isAdmin } = useAuth();
@@ -97,6 +102,97 @@ const DashboardPage = () => {
         fetchData();
     }, [isAdmin]);
 
+    // Chart.js Data Configuration - using existing frontend data only
+    const chartData = useMemo(() => {
+        // Doughnut Chart: Task Status Distribution
+        const doughnutData = {
+            labels: ['Assigned', 'In Progress', 'Completed'],
+            datasets: [{
+                data: [stats.assigned, stats.inProgress, stats.completed],
+                backgroundColor: [
+                    '#0891b2', // Cyan for Assigned
+                    '#f59e0b', // Amber for In Progress
+                    '#22c55e', // Green for Completed
+                ],
+                borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+                borderWidth: 2,
+            }]
+        };
+
+        // Line Chart: Tasks Timeline (last 7 days)
+        const getLast7Days = () => {
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                days.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            }
+            return days;
+        };
+
+        // Count tasks by date from allTasks
+        const tasksByDate = {};
+        const last7Days = getLast7Days();
+        last7Days.forEach(day => tasksByDate[day] = 0);
+
+        allTasks.forEach(task => {
+            if (task.created_at) {
+                const taskDate = new Date(task.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                if (tasksByDate.hasOwnProperty(taskDate)) {
+                    tasksByDate[taskDate]++;
+                }
+            }
+        });
+
+        const lineData = {
+            labels: last7Days,
+            datasets: [{
+                label: 'Tasks Created',
+                data: last7Days.map(day => tasksByDate[day] || 0),
+                borderColor: '#166534',
+                backgroundColor: 'rgba(22, 101, 52, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#166534',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+            }]
+        };
+
+        return { doughnutData, lineData };
+    }, [stats, allTasks]);
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 15,
+                    font: {
+                        size: 12,
+                        family: 'Inter, sans-serif'
+                    }
+                }
+            }
+        }
+    };
+
+    const lineChartOptions = {
+        ...chartOptions,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    };
+
     const handleStatCardClick = (label, statusFilter) => {
         setTaskModalTitle(label);
         setTaskModalFilter(statusFilter);
@@ -171,23 +267,23 @@ const DashboardPage = () => {
 
     return (
         <div className="animate-fade-in">
-            {/* Header */}
-            <div className="mb-8">
+            {/* Header - Mobile First */}
+            <div className="mb-6 sm:mb-8 md:mb-10">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    <h1 className="text-2xl lg:text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                    <h1 className="font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
                         Welcome back, <span className="text-gradient">{user?.name}</span>
                     </h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>
                         Here's what's happening with your tasks today.
                     </p>
                 </motion.div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6 mb-8">
+            {/* Stats Grid - Mobile First */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 md:gap-6 mb-6 sm:mb-8 md:mb-10">
                 {statCards.map((stat, index) => (
                     <motion.div
                         key={stat.label}
@@ -228,16 +324,49 @@ const DashboardPage = () => {
                 ))}
             </div>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Charts Section - Mobile First */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 md:gap-8 mb-6 sm:mb-8 md:mb-10">
+                {/* Task Status Distribution Chart */}
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="card"
+                >
+                    <h2 className="text-lg font-semibold mb-4 sm:mb-6" style={{ color: 'var(--text-primary)' }}>
+                        Task Status Distribution
+                    </h2>
+                    <div className="h-[250px] sm:h-[280px] md:h-[300px]">
+                        <Doughnut data={chartData.doughnutData} options={chartOptions} />
+                    </div>
+                </motion.div>
+
+                {/* Tasks Timeline Chart */}
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="card"
+                >
+                    <h2 className="text-lg font-semibold mb-4 sm:mb-6" style={{ color: 'var(--text-primary)' }}>
+                        Tasks Timeline (Last 7 Days)
+                    </h2>
+                    <div className="h-[250px] sm:h-[280px] md:h-[300px]">
+                        <Line data={chartData.lineData} options={lineChartOptions} />
+                    </div>
+                </motion.div>
+            </div>
+
+            {/* Main Content Grid - Mobile First */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 md:gap-8">
                 {/* Recent Tasks */}
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 }}
+                    transition={{ delay: 0.4 }}
                     className="lg:col-span-2 card"
                 >
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-4 sm:mb-6">
                         <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
                             Recent Tasks
                         </h2>
@@ -251,11 +380,11 @@ const DashboardPage = () => {
                     </div>
 
                     {recentTasks.length > 0 ? (
-                        <div className="space-y-3">
+                        <div className="space-y-3 sm:space-y-4">
                             {recentTasks.map((task) => (
                                 <div
                                     key={task.id}
-                                    className="p-4 rounded-xl transition-all hover:shadow-sm"
+                                    className="p-4 sm:p-5 rounded-xl transition-all hover:shadow-sm"
                                     style={{
                                         backgroundColor: 'var(--bg-secondary)',
                                         border: '1px solid var(--border-color)'
@@ -263,7 +392,7 @@ const DashboardPage = () => {
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                                            <h3 className="font-medium mb-1 text-sm sm:text-base" style={{ color: 'var(--text-primary)' }}>
                                                 {task.title}
                                             </h3>
                                             <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -311,10 +440,10 @@ const DashboardPage = () => {
                 <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
+                    transition={{ delay: 0.5 }}
                     className="card"
                 >
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-4 sm:mb-6">
                         <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
                             Your Teams
                         </h2>
@@ -328,12 +457,12 @@ const DashboardPage = () => {
                     </div>
 
                     {teams.length > 0 ? (
-                        <div className="space-y-3">
+                        <div className="space-y-3 sm:space-y-4">
                             {teams.map((team) => (
                                 <Link
                                     key={team.id}
                                     to={`/teams/${team.id}`}
-                                    className="block p-4 rounded-xl transition-all hover:shadow-sm group"
+                                    className="block p-4 sm:p-5 rounded-xl transition-all hover:shadow-sm group"
                                     style={{
                                         backgroundColor: 'var(--bg-secondary)',
                                         border: '1px solid var(--border-color)'
@@ -341,14 +470,14 @@ const DashboardPage = () => {
                                 >
                                     <div className="flex items-center gap-3">
                                         <div
-                                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center"
                                             style={{ backgroundColor: 'var(--color-primary)' }}
                                         >
-                                            <Users className="w-5 h-5 text-white" />
+                                            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h3
-                                                className="font-medium transition-colors"
+                                                className="font-medium transition-colors text-sm sm:text-base"
                                                 style={{ color: 'var(--text-primary)' }}
                                             >
                                                 {team.name}

@@ -16,7 +16,7 @@ import { Logger } from '../utils/logger.js';
  */
 const initializeDatabase = async () => {
   const client = await pool.connect();
-  
+
   try {
     await client.query('BEGIN');
 
@@ -126,6 +126,7 @@ const initializeDatabase = async () => {
         user_id INTEGER NOT NULL,
         message TEXT NOT NULL,
         is_deleted BOOLEAN DEFAULT FALSE,
+        deleted_for_users INTEGER[] DEFAULT '{}',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT fk_chat_messages_team FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,

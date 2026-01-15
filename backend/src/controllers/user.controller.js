@@ -345,8 +345,8 @@ export const deleteMember = async (req, res, next) => {
       try {
         await client.query('BEGIN');
 
-        // Delete user's tasks
-        await client.query('DELETE FROM tasks WHERE assigned_to_user_id = $1 OR assigned_by_user_id = $1 OR completed_by_user_id = $1', [validatedUserId]);
+        // Delete user's tasks (completed_by_user_id is handled by ON DELETE SET NULL constraint)
+        await client.query('DELETE FROM tasks WHERE assigned_to_user_id = $1 OR assigned_by_user_id = $1', [validatedUserId]);
 
         // Remove user from team members
         await client.query('DELETE FROM team_members WHERE user_id = $1', [validatedUserId]);

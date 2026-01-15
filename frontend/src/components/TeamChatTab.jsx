@@ -18,7 +18,7 @@ const TeamChatTab = ({ teamId, isActive = true }) => {
     const longPressTimerRef = useRef(null);
 
     // Use polling hook - only polls when isActive is true (chat tab is visible)
-    const { messages, isPolling, error: pollingError, addOptimisticMessage, removeMessage } = useMessagePolling(
+    const { messages, isPolling, error: pollingError, hasLoaded, addOptimisticMessage, removeMessage } = useMessagePolling(
         teamId,
         isActive, // Poll only when chat tab is active
         2000  // poll every 2 seconds
@@ -141,10 +141,8 @@ const TeamChatTab = ({ teamId, isActive = true }) => {
         }
     };
 
-    // Show loading only on initial load
-    const isLoading = messages.length === 0 && !pollingError && !error;
-
-    if (isLoading) {
+    // Show loading only on initial load before data is fetched
+    if (!hasLoaded) {
         return (
             <div className="flex items-center justify-center h-96">
                 <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--color-primary)' }} />

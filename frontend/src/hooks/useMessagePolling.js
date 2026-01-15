@@ -14,6 +14,7 @@ export const useMessagePolling = (teamId, isActive = true, pollInterval = 2000) 
     const [messages, setMessages] = useState([]);
     const [isPolling, setIsPolling] = useState(false);
     const [error, setError] = useState(null);
+    const [hasLoaded, setHasLoaded] = useState(false);
     const lastMessageTimestamp = useRef(null);
     const pollTimerRef = useRef(null);
     const isMountedRef = useRef(true);
@@ -36,6 +37,7 @@ export const useMessagePolling = (teamId, isActive = true, pollInterval = 2000) 
 
             if (isMountedRef.current) {
                 setMessages(sortedMessages);
+                setHasLoaded(true);
 
                 // Set last timestamp to the newest message
                 if (sortedMessages.length > 0) {
@@ -50,6 +52,7 @@ export const useMessagePolling = (teamId, isActive = true, pollInterval = 2000) 
             console.error('Failed to fetch initial messages:', err);
             if (isMountedRef.current) {
                 setError('Failed to load messages');
+                setHasLoaded(true); // Mark as loaded even on error
             }
         }
     }, [teamId]);
@@ -142,8 +145,12 @@ export const useMessagePolling = (teamId, isActive = true, pollInterval = 2000) 
 
         if (!teamId || !isActive) {
             setIsPolling(false);
+            setHasLoaded(false);
             return;
         }
+
+        // Reset hasLoaded for new team
+        setHasLoaded(false);
 
         // Fetch initial messages
         fetchInitialMessages();
@@ -177,6 +184,7 @@ export const useMessagePolling = (teamId, isActive = true, pollInterval = 2000) 
         messages,
         isPolling,
         error,
+        hasLoaded,
         addOptimisticMessage,
         removeMessage,
         refetch: fetchInitialMessages,

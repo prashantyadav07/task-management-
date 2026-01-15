@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import { connectDB } from './config/db.js'; // Import database connection
 import initializeDatabase from './config/init-db.js'; // Import database schema initialization (FIX #1 & #2)
 import { bootstrapAdminUser } from './config/admin-bootstrap.js'; // Import admin bootstrap logic
+import addDeletedForUsersColumn from './migrations/add-deleted-for-users.js'; // Import migration
 import { Logger } from './utils/logger.js'; // Import logger
 import app from './app.js';
 
@@ -39,6 +40,15 @@ const startServer = async () => {
     } catch (initError) {
       Logger.error('Database schema initialization failed', initError);
       console.log('⚠️  Database schema may need manual initialization');
+    }
+
+    // Run migrations
+    try {
+      await addDeletedForUsersColumn();
+      console.log('✅ Database migrations completed');
+    } catch (migrationError) {
+      Logger.error('Migration failed', migrationError);
+      console.log('⚠️  Migrations may need manual execution');
     }
 
     // Bootstrap admin user

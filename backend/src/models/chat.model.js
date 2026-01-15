@@ -57,7 +57,7 @@ const ChatModel = {
          JOIN users u ON m.user_id = u.id
          WHERE m.team_id = $1 
          AND m.is_deleted = FALSE
-         AND NOT ($2 = ANY(m.deleted_for_users))
+         AND (m.deleted_for_users IS NULL OR NOT ($2 = ANY(m.deleted_for_users)))
          ORDER BY m.created_at ASC
          LIMIT $3 OFFSET $4`,
         [teamId, userId, limit, offset]
@@ -101,7 +101,7 @@ const ChatModel = {
          WHERE m.team_id = $1 
          AND m.created_at > $2::timestamptz
          AND m.is_deleted = FALSE
-         AND NOT ($3 = ANY(m.deleted_for_users))
+         AND (m.deleted_for_users IS NULL OR NOT ($3 = ANY(m.deleted_for_users)))
          ORDER BY m.created_at ASC
          LIMIT $4`,
         [teamId, since, userId, limit]
