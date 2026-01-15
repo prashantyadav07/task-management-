@@ -1,155 +1,38 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Loader2, MessageCircle, Trash2, AlertCircle } from 'lucide-react';
+import { Send, Loader2, MessageCircle, Trash2, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { chatAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import socket from '../services/socket';
+import { useMessagePolling } from '../hooks/useMessagePolling';
 import DeleteMessageModal from './modals/DeleteMessageModal';
 
-const TeamChatTab = ({ teamId }) => {
+const TeamChatTab = ({ teamId, isActive = true }) => {
     const { user } = useAuth();
-    const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState('');
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [messageToDelete, setMessageToDelete] = useState(null);
-    const [selectedMessageId, setSelectedMessageId] = useState(null); // For mobile tap interaction
-    const [typingUsers, setTypingUsers] = useState([]); // Track who is typing
+    const [selectedMessageId, setSelectedMessageId] = useState(null);
     const messagesEndRef = useRef(null);
     const longPressTimerRef = useRef(null);
-    const typingTimeoutRef = useRef(null);
 
-    // Scroll to bottom of messages
+    // Use polling hook - only polls when isActive is true (chat tab is visible)
+    const { messages, isPolling, error: pollingError, addOptimisticMessage, removeMessage } = useMessagePolling(
+        teamId,
+        isActive, // Poll only when chat tab is active
+        2000  // poll every 2 seconds
+    );
+
+    // Auto-scroll to bottom when messages change
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    // Scroll on messages update
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
-
-    useEffect(() => {
-        if (!teamId || !user) return;
-
-        let isComponentMounted = true;
-
-        // Fetch existing messages
-        const fetchMessages = async () => {
-            try {
-                setLoading(true);
-                const response = await chatAPI.getTeamMessages(teamId);
-                // Sort messages by created_at in ascending order (oldest first)
-                const sortedMessages = (response.data.data.messages || []).sort(
-                    (a, b) => new Date(a.created_at) - new Date(b.created_at)
-                );
-                if (isComponentMounted) {
-                    setMessages(sortedMessages);
-                }
-            } catch (err) {
-                console.error('Failed to fetch messages:', err);
-                if (isComponentMounted) {
-                    setError('Failed to load messages');
-                }
-            } finally {
-                if (isComponentMounted) {
-                    setLoading(false);
-                }
-            }
-        };
-
-        fetchMessages();
-
-        // Socket event handlers
-        const handleJoinedTeam = (data) => {
-            console.log('✅ Joined team chat:', data);
-        };
-
-        const handleNewMessage = (messageData) => {
-            console.log('📨 New message received:', messageData);
-            if (!isComponentMounted) return;
-            setMessages(prev => {
-                // Avoid duplicates
-                if (prev.some(m => m.id === messageData.id)) {
-                    return prev;
-                }
-                // Add new message and keep sorted by created_at
-                return [...prev, messageData].sort(
-                    (a, b) => new Date(a.created_at) - new Date(b.created_at)
-                );
-            });
-        };
-
-        const handleMessageDeleted = (data) => {
-            console.log('🗑️ Message deleted:', data);
-            if (!isComponentMounted) return;
-            setMessages(prev => prev.filter(m => m.id !== data.messageId));
-        };
-
-        const handleUserTyping = (data) => {
-            console.log('⌨️ User typing:', data);
-            if (!isComponentMounted) return;
-            // Add user to typing list if not already there and not current user
-            if (data.userId !== user.id) {
-                setTypingUsers(prev => {
-                    if (!prev.find(u => u.userId === data.userId)) {
-                        return [...prev, { userId: data.userId, userName: data.userName }];
-                    }
-                    return prev;
-                });
-            }
-        };
-
-        const handleUserStoppedTyping = (data) => {
-            console.log('⌨️ User stopped typing:', data);
-            if (!isComponentMounted) return;
-            // Remove user from typing list
-            setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
-        };
-
-        const handleConnect = () => {
-            console.log('🔌 Socket connected, joining team room...');
-            // NOW join the team room after connection is established
-            socket.emit('join_team', { teamId, userId: user.id });
-        };
-
-        const handleDisconnect = (reason) => {
-            console.log('❌ Socket disconnected:', reason);
-        };
-
-        // Register event listeners FIRST
-        socket.on('connect', handleConnect);
-        socket.on('disconnect', handleDisconnect);
-        socket.on('joined_team', handleJoinedTeam);
-        socket.on('new_message', handleNewMessage);
-        socket.on('message_deleted', handleMessageDeleted);
-        socket.on('user_typing', handleUserTyping);
-        socket.on('user_stopped_typing', handleUserStoppedTyping);
-
-        // Connect socket if not already connected
-        if (!socket.connected) {
-            console.log('🔌 Connecting socket...');
-            socket.connect();
-        } else {
-            // If already connected, join room immediately
-            console.log('🔌 Socket already connected, joining team room...');
-            socket.emit('join_team', { teamId, userId: user.id });
-        }
-
-        // Cleanup
-        return () => {
-            isComponentMounted = false;
-            socket.emit('leave_team', { teamId, userId: user.id });
-            socket.off('connect', handleConnect);
-            socket.off('disconnect', handleDisconnect);
-            socket.off('joined_team', handleJoinedTeam);
-            socket.off('new_message', handleNewMessage);
-            socket.off('message_deleted', handleMessageDeleted);
-            socket.off('user_typing', handleUserTyping);
-            socket.off('user_stopped_typing', handleUserStoppedTyping);
-        };
-    }, [teamId, user]);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
@@ -159,26 +42,15 @@ const TeamChatTab = ({ teamId }) => {
         setSending(true);
         setError('');
 
-        // Emit stop typing event
-        socket.emit('stop_typing', { teamId, userId: user.id });
-        clearTimeout(typingTimeoutRef.current);
-
         try {
             // Save message to database
             const response = await chatAPI.createMessage(teamId, newMessage.trim());
             const savedMessage = response.data.data;
 
-            // Immediately add message to local state (optimistic UI update)
-            setMessages(prev => [...prev, savedMessage]);
+            // Add optimistically to local state (sender sees instantly)
+            addOptimisticMessage(savedMessage);
 
-            // Emit socket event for real-time delivery to other users
-            socket.emit('send_message', {
-                teamId,
-                userId: user.id,
-                userName: user.name,
-                message: newMessage.trim(),
-                messageId: savedMessage.id,
-            });
+            // Polling will pick up this message for other users within 2-3 seconds
 
             setNewMessage('');
         } catch (err) {
@@ -192,15 +64,13 @@ const TeamChatTab = ({ teamId }) => {
     const handleDeleteMessage = (message) => {
         setMessageToDelete(message);
         setDeleteModalOpen(true);
-        setSelectedMessageId(null); // Clear selection after opening modal
+        setSelectedMessageId(null);
     };
 
     // Mobile interaction handlers
     const handleTouchStart = (messageId) => {
-        // Start long-press timer (500ms)
         longPressTimerRef.current = setTimeout(() => {
             setSelectedMessageId(messageId);
-            // Auto-hide after 3 seconds
             setTimeout(() => {
                 setSelectedMessageId(null);
             }, 3000);
@@ -208,7 +78,6 @@ const TeamChatTab = ({ teamId }) => {
     };
 
     const handleTouchEnd = () => {
-        // Clear long-press timer if touch ends before 500ms
         if (longPressTimerRef.current) {
             clearTimeout(longPressTimerRef.current);
             longPressTimerRef.current = null;
@@ -216,51 +85,20 @@ const TeamChatTab = ({ teamId }) => {
     };
 
     const handleMessageClick = (messageId) => {
-        // Toggle selected message on tap (for quick tap, not long-press)
         if (selectedMessageId === messageId) {
             setSelectedMessageId(null);
         } else {
             setSelectedMessageId(messageId);
-            // Auto-hide after 3 seconds
             setTimeout(() => {
                 setSelectedMessageId(null);
             }, 3000);
         }
     };
 
-    // Handle input change and typing indicator
-    const handleInputChange = (e) => {
-        const value = e.target.value;
-        setNewMessage(value);
-
-        // Emit typing event
-        if (value.trim()) {
-            socket.emit('typing', {
-                teamId,
-                userId: user.id,
-                userName: user.name
-            });
-
-            // Clear existing timeout
-            clearTimeout(typingTimeoutRef.current);
-
-            // Set timeout to emit stop typing after 2 seconds of inactivity
-            typingTimeoutRef.current = setTimeout(() => {
-                socket.emit('stop_typing', { teamId, userId: user.id });
-            }, 2000);
-        } else {
-            // If input is empty, stop typing
-            socket.emit('stop_typing', { teamId, userId: user.id });
-            clearTimeout(typingTimeoutRef.current);
-        }
-    };
-
     const handleDeleteForMe = async (messageId) => {
         try {
             await chatAPI.deleteMessage(messageId, 'me');
-
-            // Remove from local state only
-            setMessages(prev => prev.filter(m => m.id !== messageId));
+            removeMessage(messageId);
         } catch (err) {
             console.error('Failed to delete message:', err);
             setError('Failed to delete message');
@@ -271,16 +109,8 @@ const TeamChatTab = ({ teamId }) => {
     const handleDeleteForEveryone = async (messageId) => {
         try {
             await chatAPI.deleteMessage(messageId, 'everyone');
-
-            // Emit socket event for real-time deletion
-            socket.emit('delete_message', {
-                teamId,
-                messageId,
-                deleteType: 'everyone',
-            });
-
-            // Remove from local state
-            setMessages(prev => prev.filter(m => m.id !== messageId));
+            removeMessage(messageId);
+            // Other users will see deletion via polling
         } catch (err) {
             console.error('Failed to delete message:', err);
             setError('Failed to delete message');
@@ -289,23 +119,17 @@ const TeamChatTab = ({ teamId }) => {
     };
 
     const formatTime = (timestamp) => {
-        // Create Date object from the timestamp (database returns UTC)
         const date = new Date(timestamp);
         const now = new Date();
-
-        // Calculate difference in hours
         const diffInHours = (now - date) / (1000 * 60 * 60);
 
-        // Display just time if message is from today
         if (diffInHours < 24) {
-            // Use local time with proper 12/24 hour format based on user's locale
             return date.toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
-                hour12: true // Shows AM/PM format
+                hour12: true
             });
         } else {
-            // For older messages, show date + time in local timezone
             return date.toLocaleDateString([], {
                 month: 'short',
                 day: 'numeric'
@@ -317,7 +141,10 @@ const TeamChatTab = ({ teamId }) => {
         }
     };
 
-    if (loading) {
+    // Show loading only on initial load
+    const isLoading = messages.length === 0 && !pollingError && !error;
+
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center h-96">
                 <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--color-primary)' }} />
@@ -327,6 +154,30 @@ const TeamChatTab = ({ teamId }) => {
 
     return (
         <div className="flex flex-col h-[600px]">
+            {/* Polling Status Indicator */}
+            <div className="px-4 py-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+                <div className="flex items-center gap-2">
+                    {isPolling ? (
+                        <>
+                            <Wifi className="w-4 h-4" style={{ color: 'var(--color-success)' }} />
+                            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                Live updates (2s delay)
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <WifiOff className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                Reconnecting...
+                            </span>
+                        </>
+                    )}
+                </div>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {messages.length} message{messages.length !== 1 ? 's' : ''}
+                </span>
+            </div>
+
             {/* Messages List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                 {messages.length === 0 ? (
@@ -348,7 +199,6 @@ const TeamChatTab = ({ teamId }) => {
                                 animate={{ opacity: 1, y: 0 }}
                                 className={`flex gap-3 ${isMyMessage ? 'justify-end' : 'justify-start'}`}
                             >
-                                {/* Left side: Avatar for other users */}
                                 {!isMyMessage && (
                                     <div className="flex-shrink-0">
                                         {showAvatar ? (
@@ -364,9 +214,7 @@ const TeamChatTab = ({ teamId }) => {
                                     </div>
                                 )}
 
-                                {/* Message content */}
                                 <div className={`max-w-md flex flex-col ${isMyMessage ? 'items-end' : 'items-start'}`}>
-                                    {/* Name and timestamp header - ALWAYS SHOWN */}
                                     <div className={`flex items-center gap-2 mb-1 ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}>
                                         <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
                                             {isMyMessage ? 'You' : message.user_name}
@@ -376,7 +224,6 @@ const TeamChatTab = ({ teamId }) => {
                                         </span>
                                     </div>
 
-                                    {/* Message bubble with delete button */}
                                     <div
                                         className={`flex items-center gap-2 group ${isMyMessage ? 'flex-row-reverse' : 'flex-row'}`}
                                         onTouchStart={() => handleTouchStart(message.id)}
@@ -384,17 +231,10 @@ const TeamChatTab = ({ teamId }) => {
                                         onClick={() => handleMessageClick(message.id)}
                                     >
                                         <div
-                                            className={`px-4 py-2 rounded-2xl ${isMyMessage
-                                                ? 'rounded-tr-sm'
-                                                : 'rounded-tl-sm'
-                                                }`}
+                                            className={`px-4 py-2 rounded-2xl ${isMyMessage ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
                                             style={{
-                                                backgroundColor: isMyMessage
-                                                    ? 'var(--color-primary)'
-                                                    : 'var(--bg-primary)',
-                                                color: isMyMessage
-                                                    ? 'white'
-                                                    : 'var(--text-primary)',
+                                                backgroundColor: isMyMessage ? 'var(--color-primary)' : 'var(--bg-primary)',
+                                                color: isMyMessage ? 'white' : 'var(--text-primary)',
                                                 border: !isMyMessage ? '1px solid var(--border-color)' : 'none'
                                             }}
                                         >
@@ -403,16 +243,12 @@ const TeamChatTab = ({ teamId }) => {
                                             </p>
                                         </div>
 
-                                        {/* Delete button - visible on hover (desktop) or when selected (mobile) */}
                                         <button
                                             onClick={(e) => {
-                                                e.stopPropagation(); // Prevent triggering message click
+                                                e.stopPropagation();
                                                 handleDeleteMessage(message);
                                             }}
-                                            className={`p-1 rounded-lg hover:bg-opacity-10 transition-all flex-shrink-0 ${selectedMessageId === message.id
-                                                ? 'opacity-100' // Always visible when selected on mobile
-                                                : 'opacity-0 group-hover:opacity-100' // Hover for desktop
-                                                }`}
+                                            className={`p-1 rounded-lg hover:bg-opacity-10 transition-all flex-shrink-0 ${selectedMessageId === message.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                             style={{
                                                 color: 'var(--color-danger)',
                                                 backgroundColor: 'transparent'
@@ -424,7 +260,6 @@ const TeamChatTab = ({ teamId }) => {
                                     </div>
                                 </div>
 
-                                {/* Right side: Avatar for current user (invisible placeholder for alignment) */}
                                 {isMyMessage && (
                                     <div className="flex-shrink-0">
                                         {showAvatar ? (
@@ -447,47 +282,11 @@ const TeamChatTab = ({ teamId }) => {
             </div>
 
             {/* Error */}
-            {error && (
+            {(error || pollingError) && (
                 <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                     <div className="alert alert-danger py-2">
                         <AlertCircle className="w-4 h-4" />
-                        <p className="text-xs">{error}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Typing Indicator */}
-            {typingUsers.length > 0 && (
-                <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                    <div className="flex items-center gap-2">
-                        <div className="flex gap-1">
-                            <motion.div
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: 'var(--color-primary)' }}
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                            />
-                            <motion.div
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: 'var(--color-primary)' }}
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                            />
-                            <motion.div
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: 'var(--color-primary)' }}
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                            />
-                        </div>
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                            {typingUsers.length === 1
-                                ? `${typingUsers[0].userName} is typing...`
-                                : typingUsers.length === 2
-                                    ? `${typingUsers[0].userName} and ${typingUsers[1].userName} are typing...`
-                                    : `${typingUsers[0].userName} and ${typingUsers.length - 1} others are typing...`
-                            }
-                        </span>
+                        <p className="text-xs">{error || pollingError}</p>
                     </div>
                 </div>
             )}
@@ -498,7 +297,7 @@ const TeamChatTab = ({ teamId }) => {
                     <input
                         type="text"
                         value={newMessage}
-                        onChange={handleInputChange}
+                        onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Type a message..."
                         className="input flex-1"
                         disabled={sending}

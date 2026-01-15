@@ -119,8 +119,14 @@ export const analyticsAPI = {
 
 // Chat API
 export const chatAPI = {
-  getTeamMessages: (teamId, limit = 100, offset = 0) =>
-    api.get(`/chat/${teamId}?limit=${limit}&offset=${offset}`),
+  getTeamMessages: (teamId, params = {}) => {
+    const { limit = 100, offset = 0, since } = params;
+    let queryParams = `limit=${limit}&offset=${offset}`;
+    if (since) {
+      queryParams += `&since=${encodeURIComponent(since)}`;
+    }
+    return api.get(`/chat/${teamId}?${queryParams}`);
+  },
   createMessage: (teamId, message) => api.post(`/chat/${teamId}`, { message }),
   deleteMessage: (messageId, deleteType = 'everyone') => api.delete(`/chat/message/${messageId}?deleteType=${deleteType}`),
 };

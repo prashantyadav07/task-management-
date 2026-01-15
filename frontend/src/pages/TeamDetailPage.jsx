@@ -366,7 +366,7 @@ const TeamDetailPage = () => {
 
             {activeTab === 'chat' && (
                 <div>
-                    <TeamChatTab teamId={parseInt(id)} />
+                    <TeamChatTab teamId={parseInt(id)} isActive={activeTab === 'chat'} />
                 </div>
             )}
 

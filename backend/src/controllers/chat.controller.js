@@ -7,14 +7,16 @@ import { validateNumericId } from '../utils/validation.js';
 /**
  * Get all messages for a team
  * GET /api/chat/:teamId
+ * Query params:
+ *   - limit: number of messages (default: 100)
+ *   - offset: pagination offset (default: 0)
+ *   - since: ISO timestamp - only return messages after this time (for polling)
  * Requires: User must be a team member
- * @param limit - number of messages to retrieve (default: 100)
- * @param offset - pagination offset (default: 0)
  */
 export const getTeamMessages = async (req, res, next) => {
   try {
     const { teamId } = req.params;
-    const { limit = 100, offset = 0 } = req.query;
+    const { limit = 100, offset = 0, since } = req.query;
     const userId = req.user.userId;
 
     // Validate team ID
@@ -32,15 +34,52 @@ export const getTeamMessages = async (req, res, next) => {
       throw new AuthorizationError('You are not a member of this team');
     }
 
-    Logger.debug('Fetching team messages', { teamId: validatedTeamId, userId, limit, offset });
+    let messages;
 
-    const messages = await ChatModel.findByTeam(validatedTeamId, userId, parseInt(limit), parseInt(offset));
+    // If 'since' parameter provided, fetch only new messages (polling mode)
+    if (since) {
+      Logger.debug('Fetching new team messages since timestamp', {
+        teamId: validatedTeamId,
+        userId,
+        since,
+        limit,
+      });
 
-    Logger.info('Team messages retrieved successfully', {
-      teamId: validatedTeamId,
-      messageCount: messages.length,
-      userId,
-    });
+      messages = await ChatModel.findByTeamSince(
+        validatedTeamId,
+        userId,
+        since,
+        parseInt(limit)
+      );
+
+      Logger.info('New team messages retrieved successfully (polling)', {
+        teamId: validatedTeamId,
+        messageCount: messages.length,
+        userId,
+        since,
+      });
+    } else {
+      // Fetch all messages (initial load)
+      Logger.debug('Fetching all team messages', {
+        teamId: validatedTeamId,
+        userId,
+        limit,
+        offset,
+      });
+
+      messages = await ChatModel.findByTeam(
+        validatedTeamId,
+        userId,
+        parseInt(limit),
+        parseInt(offset)
+      );
+
+      Logger.info('Team messages retrieved successfully', {
+        teamId: validatedTeamId,
+        messageCount: messages.length,
+        userId,
+      });
+    }
 
     return res.status(200).json({
       success: true,

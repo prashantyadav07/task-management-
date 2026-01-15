@@ -73,6 +73,56 @@ const ChatModel = {
   },
 
   /**
+   * Find messages for a team created after a specific timestamp (for polling)
+   * Used for real-time updates - only fetches new messages
+   * @param {number} teamId - Team ID
+   * @param {number} userId - User ID (for delete filtering)
+   * @param {string} since - ISO timestamp (e.g., '2026-01-15T12:00:00.000Z')
+   * @param {number} limit - Maximum messages to return (default: 100)
+   * @returns {Promise<Array>} Messages created after the timestamp
+   * @throws {DatabaseError}
+   */
+  findByTeamSince: async (teamId, userId, since, limit = 100) => {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        `SELECT 
+          m.id, 
+          m.team_id, 
+          m.user_id, 
+          m.message, 
+          TO_CHAR(m.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as created_at,
+          m.is_deleted,
+          m.deleted_for_users,
+          u.name as user_name,
+          u.email as user_email
+         FROM team_chat_messages m
+         JOIN users u ON m.user_id = u.id
+         WHERE m.team_id = $1 
+         AND m.created_at > $2::timestamptz
+         AND m.is_deleted = FALSE
+         AND NOT ($3 = ANY(m.deleted_for_users))
+         ORDER BY m.created_at ASC
+         LIMIT $4`,
+        [teamId, since, userId, limit]
+      );
+
+      Logger.debug('Fetched new messages since timestamp', {
+        teamId,
+        since,
+        messageCount: result.rows.length,
+      });
+
+      return result.rows;
+    } catch (error) {
+      Logger.error('Failed to fetch team messages since timestamp', error, { teamId, since });
+      throw new DatabaseError('Failed to fetch new messages', error);
+    } finally {
+      client.release();
+    }
+  },
+
+  /**
    * Get a specific message by ID
    * @throws {DatabaseError}
    */
