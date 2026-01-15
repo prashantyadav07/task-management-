@@ -54,6 +54,8 @@ const startServer = async () => {
     const httpServer = createServer(app);
 
     // Initialize Socket.io with CORS configuration
+    // NOTE: Vercel serverless functions have limitations with WebSockets
+    // Prioritize polling transport for production reliability
     const io = new Server(httpServer, {
       cors: {
         origin: [
@@ -69,7 +71,12 @@ const startServer = async () => {
         credentials: true,
         methods: ['GET', 'POST']
       },
-      transports: ['websocket', 'polling']
+      transports: ['polling', 'websocket'], // Polling first for Vercel compatibility
+      pingTimeout: 60000, // Increase timeout for serverless
+      pingInterval: 25000,
+      upgradeTimeout: 30000,
+      maxHttpBufferSize: 1e6,
+      allowEIO3: true // Support older clients
     });
 
     // Socket.io Connection Handler
