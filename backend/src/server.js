@@ -105,6 +105,14 @@ const startServer = async () => {
             room,
           });
 
+          // Log all sockets in the room for debugging
+          const socketsInRoom = io.sockets.adapter.rooms.get(room);
+          Logger.info('Room membership after join', {
+            room,
+            totalSockets: socketsInRoom?.size || 0,
+            socketIds: socketsInRoom ? Array.from(socketsInRoom) : [],
+          });
+
           // Notify other users in the room (for presence awareness)
           socket.to(room).emit('user_joined', {
             userId,
@@ -182,7 +190,18 @@ const startServer = async () => {
             messageId,
           });
 
-          // Broadcast message ONLY to users in this specific team (isolation)
+          // Log current room membership for debugging
+          const socketsInRoom = io.sockets.adapter.rooms.get(room);
+          Logger.info('Broadcasting message to team', {
+            teamId,
+            room,
+            totalSocketsInRoom: socketsInRoom?.size || 0,
+            socketIds: socketsInRoom ? Array.from(socketsInRoom) : [],
+          });
+
+          // Broadcast message to ALL users in this specific team (including sender)
+          // Note: Frontend has optimistic update for sender, but we broadcast to everyone
+          // for consistency. Frontend has duplicate detection to handle this.
           io.to(room).emit('new_message', {
             id: messageId,
             teamId,

@@ -33,10 +33,7 @@ const TeamChatTab = ({ teamId }) => {
     useEffect(() => {
         if (!teamId || !user) return;
 
-        // Connect socket
-        if (!socket.connected) {
-            socket.connect();
-        }
+        let isComponentMounted = true;
 
         // Fetch existing messages
         const fetchMessages = async () => {
@@ -47,27 +44,31 @@ const TeamChatTab = ({ teamId }) => {
                 const sortedMessages = (response.data.data.messages || []).sort(
                     (a, b) => new Date(a.created_at) - new Date(b.created_at)
                 );
-                setMessages(sortedMessages);
+                if (isComponentMounted) {
+                    setMessages(sortedMessages);
+                }
             } catch (err) {
                 console.error('Failed to fetch messages:', err);
-                setError('Failed to load messages');
+                if (isComponentMounted) {
+                    setError('Failed to load messages');
+                }
             } finally {
-                setLoading(false);
+                if (isComponentMounted) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchMessages();
 
-        // Join team room
-        socket.emit('join_team', { teamId, userId: user.id });
-
         // Socket event handlers
         const handleJoinedTeam = (data) => {
-            console.log('Joined team chat:', data);
+            console.log('✅ Joined team chat:', data);
         };
 
         const handleNewMessage = (messageData) => {
-            console.log('New message received:', messageData);
+            console.log('📨 New message received:', messageData);
+            if (!isComponentMounted) return;
             setMessages(prev => {
                 // Avoid duplicates
                 if (prev.some(m => m.id === messageData.id)) {
@@ -81,12 +82,14 @@ const TeamChatTab = ({ teamId }) => {
         };
 
         const handleMessageDeleted = (data) => {
-            console.log('Message deleted:', data);
+            console.log('🗑️ Message deleted:', data);
+            if (!isComponentMounted) return;
             setMessages(prev => prev.filter(m => m.id !== data.messageId));
         };
 
         const handleUserTyping = (data) => {
-            console.log('User typing:', data);
+            console.log('⌨️ User typing:', data);
+            if (!isComponentMounted) return;
             // Add user to typing list if not already there and not current user
             if (data.userId !== user.id) {
                 setTypingUsers(prev => {
@@ -99,20 +102,47 @@ const TeamChatTab = ({ teamId }) => {
         };
 
         const handleUserStoppedTyping = (data) => {
-            console.log('User stopped typing:', data);
+            console.log('⌨️ User stopped typing:', data);
+            if (!isComponentMounted) return;
             // Remove user from typing list
             setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
         };
 
+        const handleConnect = () => {
+            console.log('🔌 Socket connected, joining team room...');
+            // NOW join the team room after connection is established
+            socket.emit('join_team', { teamId, userId: user.id });
+        };
+
+        const handleDisconnect = (reason) => {
+            console.log('❌ Socket disconnected:', reason);
+        };
+
+        // Register event listeners FIRST
+        socket.on('connect', handleConnect);
+        socket.on('disconnect', handleDisconnect);
         socket.on('joined_team', handleJoinedTeam);
         socket.on('new_message', handleNewMessage);
         socket.on('message_deleted', handleMessageDeleted);
         socket.on('user_typing', handleUserTyping);
         socket.on('user_stopped_typing', handleUserStoppedTyping);
 
+        // Connect socket if not already connected
+        if (!socket.connected) {
+            console.log('🔌 Connecting socket...');
+            socket.connect();
+        } else {
+            // If already connected, join room immediately
+            console.log('🔌 Socket already connected, joining team room...');
+            socket.emit('join_team', { teamId, userId: user.id });
+        }
+
         // Cleanup
         return () => {
+            isComponentMounted = false;
             socket.emit('leave_team', { teamId, userId: user.id });
+            socket.off('connect', handleConnect);
+            socket.off('disconnect', handleDisconnect);
             socket.off('joined_team', handleJoinedTeam);
             socket.off('new_message', handleNewMessage);
             socket.off('message_deleted', handleMessageDeleted);
