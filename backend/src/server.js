@@ -270,6 +270,82 @@ const startServer = async () => {
         }
       });
 
+      /**
+       * Typing indicator event
+       * Event: typing
+       * Data: { teamId, userId, userName }
+       * 
+       * Broadcasts typing status to OTHER users in the team (excludes sender)
+       */
+      socket.on('typing', (data) => {
+        try {
+          const { teamId, userId, userName } = data;
+
+          if (!teamId || !userId || !userName) {
+            Logger.warn('Invalid typing data', { socketId: socket.id, data });
+            return;
+          }
+
+          const room = `team_${teamId}`;
+
+          Logger.debug('Typing event received', {
+            socketId: socket.id,
+            teamId,
+            userId,
+            userName,
+          });
+
+          // Broadcast to OTHER users in the team (exclude sender)
+          socket.to(room).emit('user_typing', {
+            teamId,
+            userId,
+            userName,
+            timestamp: new Date().toISOString(),
+          });
+
+          Logger.debug('Typing indicator broadcasted', { teamId, userId });
+        } catch (error) {
+          Logger.error('Error in typing handler', error, { socketId: socket.id });
+        }
+      });
+
+      /**
+       * Stop typing indicator event
+       * Event: stop_typing
+       * Data: { teamId, userId }
+       * 
+       * Broadcasts stop-typing status to OTHER users in the team (excludes sender)
+       */
+      socket.on('stop_typing', (data) => {
+        try {
+          const { teamId, userId } = data;
+
+          if (!teamId || !userId) {
+            Logger.warn('Invalid stop_typing data', { socketId: socket.id, data });
+            return;
+          }
+
+          const room = `team_${teamId}`;
+
+          Logger.debug('Stop typing event received', {
+            socketId: socket.id,
+            teamId,
+            userId,
+          });
+
+          // Broadcast to OTHER users in the team (exclude sender)
+          socket.to(room).emit('user_stopped_typing', {
+            teamId,
+            userId,
+            timestamp: new Date().toISOString(),
+          });
+
+          Logger.debug('Stop typing indicator broadcasted', { teamId, userId });
+        } catch (error) {
+          Logger.error('Error in stop_typing handler', error, { socketId: socket.id });
+        }
+      });
+
       // Handle disconnection
       socket.on('disconnect', () => {
         Logger.debug('Socket.io disconnection', { socketId: socket.id });
