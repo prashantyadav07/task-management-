@@ -333,7 +333,7 @@ const DashboardPage = () => {
                     transition={{ delay: 0.2 }}
                     className="card"
                 >
-                    <h2 className="text-lg font-semibold mb-4 sm:mb-6" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-base font-semibold mb-4 sm:mb-6" style={{ color: 'var(--text-primary)' }}>
                         Task Status Distribution
                     </h2>
                     <div className="h-[250px] sm:h-[280px] md:h-[300px]">
@@ -348,7 +348,7 @@ const DashboardPage = () => {
                     transition={{ delay: 0.3 }}
                     className="card"
                 >
-                    <h2 className="text-lg font-semibold mb-4 sm:mb-6" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-base font-semibold mb-4 sm:mb-6" style={{ color: 'var(--text-primary)' }}>
                         Tasks Timeline (Last 7 Days)
                     </h2>
                     <div className="h-[250px] sm:h-[280px] md:h-[300px]">
@@ -367,7 +367,7 @@ const DashboardPage = () => {
                     className="lg:col-span-2 card"
                 >
                     <div className="flex items-center justify-between mb-4 sm:mb-6">
-                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
                             Recent Tasks
                         </h2>
                         <Link
@@ -392,7 +392,7 @@ const DashboardPage = () => {
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-medium mb-1 text-sm sm:text-base" style={{ color: 'var(--text-primary)' }}>
+                                            <h3 className="font-medium mb-1 text-xs sm:text-sm" style={{ color: 'var(--text-primary)' }}>
                                                 {task.title}
                                             </h3>
                                             <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -444,7 +444,7 @@ const DashboardPage = () => {
                     className="card"
                 >
                     <div className="flex items-center justify-between mb-4 sm:mb-6">
-                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
                             Your Teams
                         </h2>
                         <Link
@@ -477,7 +477,7 @@ const DashboardPage = () => {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h3
-                                                className="font-medium transition-colors text-sm sm:text-base"
+                                                className="font-medium transition-colors text-xs sm:text-sm"
                                                 style={{ color: 'var(--text-primary)' }}
                                             >
                                                 {team.name}

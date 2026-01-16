@@ -421,14 +421,10 @@ export const createMemberTask = async (req, res, next) => {
       throw new AuthorizationError('You must be a member of this team to create tasks');
     }
 
-    // If assignedToUserId is provided, verify they're also a member
+    // Validate assignedToUserId if provided (no team membership check - matches admin endpoint)
     let validatedAssignedUserId = null;
     if (assignedToUserId) {
       validatedAssignedUserId = validateUserId(assignedToUserId);
-      const isAssigneeTeamMember = teamMembers.some(m => m.id === validatedAssignedUserId) || team.owner_id === validatedAssignedUserId;
-      if (!isAssigneeTeamMember) {
-        throw new ValidationError('Assigned user must be a member of this team');
-      }
     } else {
       // Default to self-assignment if not specified
       validatedAssignedUserId = createdByUserId;

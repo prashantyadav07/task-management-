@@ -10,8 +10,10 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { tasksAPI, teamsAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated, teams }) => {
+    const { isAdmin } = useAuth();
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [assignedToUserId, setAssignedToUserId] = useState('');
@@ -59,8 +61,12 @@ const CreateTaskModal = ({ isOpen, onClose, teamId, members, onTaskCreated, team
                 dueDate: dueDate || undefined
             };
 
-            const response = await tasksAPI.createTask(taskData);
-            onTaskCreated?.(response.data.data);
+            // Use appropriate endpoint based on user role
+            const response = isAdmin
+                ? await tasksAPI.createTask(taskData)
+                : await tasksAPI.createMemberTask(taskData);
+
+            onTaskCreated?.(response.data.task || response.data.data);
             handleClose();
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create task');

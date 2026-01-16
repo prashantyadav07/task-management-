@@ -83,6 +83,7 @@ export const tasksAPI = {
   getMyTasks: () => api.get('/tasks/my-tasks'),
   getTeamTasks: (teamId) => api.get(`/tasks/team/${teamId}`),
   createTask: (taskData) => api.post('/tasks', taskData),
+  createMemberTask: (taskData) => api.post('/tasks/member/create', taskData),
   startTask: (taskId) => api.put(`/tasks/${taskId}/start`, {}),
   completeTask: (taskId, data) => api.put(`/tasks/${taskId}/complete`, data || {}),
   deleteTask: (taskId, hard = false) => api.delete(`/tasks/${taskId}?hard=${hard}`),

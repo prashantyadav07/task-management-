@@ -23,8 +23,56 @@ const QUERIES = {
   TASK: {
     CREATE: 'INSERT INTO tasks (title, description, assigned_to_user_id, assigned_by_user_id, team_id, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, title, description, assigned_to_user_id, assigned_by_user_id, team_id, status, assigned_at',
     FIND_BY_ID: 'SELECT * FROM tasks WHERE id = $1',
-    FIND_BY_ASSIGNED_USER: 'SELECT * FROM tasks WHERE assigned_to_user_id = $1 ORDER BY assigned_at DESC',
-    FIND_BY_TEAM: 'SELECT * FROM tasks WHERE team_id = $1 ORDER BY assigned_at DESC',
+    FIND_BY_ASSIGNED_USER: `
+      SELECT 
+        t.id,
+        t.title,
+        t.description,
+        t.status,
+        t.assigned_to_user_id,
+        t.assigned_by_user_id,
+        t.team_id,
+        t.assigned_at,
+        t.started_at,
+        t.completed_at,
+        t.due_date,
+        t.created_at,
+        u.name as assigned_to_name,
+        u.email as assigned_to_email,
+        creator.name as assigned_by_name,
+        tm.name as team_name
+      FROM tasks t
+      LEFT JOIN users u ON t.assigned_to_user_id = u.id
+      LEFT JOIN users creator ON t.assigned_by_user_id = creator.id
+      LEFT JOIN teams tm ON t.team_id = tm.id
+      WHERE t.assigned_to_user_id = $1 AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)
+      ORDER BY t.assigned_at DESC
+    `,
+    FIND_BY_TEAM: `
+      SELECT 
+        t.id,
+        t.title,
+        t.description,
+        t.status,
+        t.assigned_to_user_id,
+        t.assigned_by_user_id,
+        t.team_id,
+        t.assigned_at,
+        t.started_at,
+        t.completed_at,
+        t.due_date,
+        t.created_at,
+        u.name as assigned_to_name,
+        u.email as assigned_to_email,
+        creator.name as assigned_by_name,
+        tm.name as team_name
+      FROM tasks t
+      LEFT JOIN users u ON t.assigned_to_user_id = u.id
+      LEFT JOIN users creator ON t.assigned_by_user_id = creator.id
+      LEFT JOIN teams tm ON t.team_id = tm.id
+      WHERE t.team_id = $1 AND (t.is_deleted = FALSE OR t.is_deleted IS NULL)
+      ORDER BY t.assigned_at DESC
+    `,
     UPDATE_STATUS_TO_IN_PROGRESS: 'UPDATE tasks SET status = $1, started_at = NOW() WHERE id = $2 AND assigned_to_user_id = $3 AND status = $4 RETURNING *',
     UPDATE_STATUS_TO_COMPLETED: 'UPDATE tasks SET status = $1, completed_at = NOW() WHERE id = $2 AND assigned_to_user_id = $3 AND status = $4 RETURNING *',
     GET_TASK_TIME: 'SELECT EXTRACT(EPOCH FROM (completed_at - started_at))/60 AS time_in_minutes FROM tasks WHERE id = $1 AND status = $2'

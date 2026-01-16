@@ -148,7 +148,13 @@ const TaskCard = ({ task, onTaskUpdated }) => {
                 {task.assigned_to_name && (
                     <div className="flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5" />
-                        {task.assigned_to_name}
+                        Assigned to: <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>{task.assigned_to_name}</span>
+                    </div>
+                )}
+                {task.assigned_by_name && (
+                    <div className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5" />
+                        By: <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>{task.assigned_by_name}</span>
                     </div>
                 )}
             </div>
