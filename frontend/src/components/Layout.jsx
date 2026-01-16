@@ -122,7 +122,7 @@ const Layout = () => {
                         : 'ml-64'
                     }`}
             >
-                <div className={`${isMobile ? 'p-5 sm:p-6' : 'p-6 md:p-8 lg:p-10'}`}>
+                <div className={`${isMobile ? 'p-5 sm:p-6' : 'p-6 md:p-7 lg:p-8'}`}>
                     <Outlet />
                 </div>
             </main>

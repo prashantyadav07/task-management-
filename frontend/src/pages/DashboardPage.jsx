@@ -268,7 +268,7 @@ const DashboardPage = () => {
     return (
         <div className="animate-fade-in">
             {/* Header - Mobile First */}
-            <div className="mb-6 sm:mb-8 md:mb-10">
+            <div className="mb-5 sm:mb-6 md:mb-7">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -283,7 +283,7 @@ const DashboardPage = () => {
             </div>
 
             {/* Stats Grid - Mobile First */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 md:gap-6 mb-6 sm:mb-8 md:mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-4 md:gap-5 mb-5 sm:mb-6 md:mb-7">
                 {statCards.map((stat, index) => (
                     <motion.div
                         key={stat.label}
@@ -312,7 +312,7 @@ const DashboardPage = () => {
                                 className="stat-card-icon"
                                 style={{ backgroundColor: stat.bgColor }}
                             >
-                                <stat.icon className="w-6 h-6" style={{ color: stat.iconColor }} />
+                                <stat.icon className="w-5 h-5" style={{ color: stat.iconColor }} />
                             </div>
                         </div>
                         {stat.clickable && (
@@ -325,7 +325,7 @@ const DashboardPage = () => {
             </div>
 
             {/* Charts Section - Mobile First */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 md:gap-8 mb-6 sm:mb-8 md:mb-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-5 sm:mb-6 md:mb-7">
                 {/* Task Status Distribution Chart */}
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -333,10 +333,10 @@ const DashboardPage = () => {
                     transition={{ delay: 0.2 }}
                     className="card"
                 >
-                    <h2 className="text-base font-semibold mb-4 sm:mb-6" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-base font-semibold mb-4 sm:mb-5" style={{ color: 'var(--text-primary)' }}>
                         Task Status Distribution
                     </h2>
-                    <div className="h-[250px] sm:h-[280px] md:h-[300px]">
+                    <div className="h-[220px] sm:h-[240px] md:h-[260px]">
                         <Doughnut data={chartData.doughnutData} options={chartOptions} />
                     </div>
                 </motion.div>
@@ -348,17 +348,17 @@ const DashboardPage = () => {
                     transition={{ delay: 0.3 }}
                     className="card"
                 >
-                    <h2 className="text-base font-semibold mb-4 sm:mb-6" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-base font-semibold mb-4 sm:mb-5" style={{ color: 'var(--text-primary)' }}>
                         Tasks Timeline (Last 7 Days)
                     </h2>
-                    <div className="h-[250px] sm:h-[280px] md:h-[300px]">
+                    <div className="h-[220px] sm:h-[240px] md:h-[260px]">
                         <Line data={chartData.lineData} options={lineChartOptions} />
                     </div>
                 </motion.div>
             </div>
 
             {/* Main Content Grid - Mobile First */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 md:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
                 {/* Recent Tasks */}
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -366,7 +366,7 @@ const DashboardPage = () => {
                     transition={{ delay: 0.4 }}
                     className="lg:col-span-2 card"
                 >
-                    <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <div className="flex items-center justify-between mb-4 sm:mb-5">
                         <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
                             Recent Tasks
                         </h2>
@@ -443,7 +443,7 @@ const DashboardPage = () => {
                     transition={{ delay: 0.5 }}
                     className="card"
                 >
-                    <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <div className="flex items-center justify-between mb-4 sm:mb-5">
                         <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
                             Your Teams
                         </h2>

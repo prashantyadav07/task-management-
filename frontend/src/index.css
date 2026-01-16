@@ -91,9 +91,15 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Mobile-first fluid typography: 14px on mobile, scales to 16px on desktop */
-  font-size: clamp(0.875rem, 0.8rem + 0.4vw, 1rem);
+  /* Fixed 14px on mobile, 15px on desktop for better readability */
+  font-size: 14px;
   line-height: 1.6;
+}
+
+@media (min-width: 1024px) {
+  body {
+    font-size: 15px;
+  }
 }
 
 /* ============================================
@@ -139,32 +145,68 @@ h6 {
   line-height: 1.3;
 }
 
-/* Mobile-first fluid heading typography */
+/* Optimized heading typography for professional appearance */
 h1 {
-  font-size: clamp(1.5rem, 1.2rem + 1.5vw, 2.25rem);
+  font-size: 1.5rem;
   line-height: 1.2;
 }
 
+@media (min-width: 1024px) {
+  h1 {
+    font-size: 1.75rem;
+  }
+}
+
 h2 {
-  font-size: clamp(1.25rem, 1rem + 1.25vw, 1.875rem);
+  font-size: 1.25rem;
   line-height: 1.3;
 }
 
+@media (min-width: 1024px) {
+  h2 {
+    font-size: 1.5rem;
+  }
+}
+
 h3 {
-  font-size: clamp(1.125rem, 0.95rem + 0.875vw, 1.5rem);
+  font-size: 1.125rem;
   line-height: 1.4;
 }
 
+@media (min-width: 1024px) {
+  h3 {
+    font-size: 1.25rem;
+  }
+}
+
 h4 {
-  font-size: clamp(1rem, 0.875rem + 0.625vw, 1.25rem);
+  font-size: 1rem;
+}
+
+@media (min-width: 1024px) {
+  h4 {
+    font-size: 1.125rem;
+  }
 }
 
 h5 {
-  font-size: clamp(0.9375rem, 0.85rem + 0.4375vw, 1.125rem);
+  font-size: 0.9375rem;
+}
+
+@media (min-width: 1024px) {
+  h5 {
+    font-size: 1rem;
+  }
 }
 
 h6 {
-  font-size: clamp(0.875rem, 0.825rem + 0.25vw, 1rem);
+  font-size: 0.875rem;
+}
+
+@media (min-width: 1024px) {
+  h6 {
+    font-size: 0.9375rem;
+  }
 }
 
 /* ============================================
@@ -188,11 +230,12 @@ h6 {
   text-decoration: none;
 }
 
-/* Laptop/desktop: slightly reduce height for better aesthetics */
+/* Laptop/desktop: more compact for professional appearance */
 @media (min-width: 1024px) {
   .btn {
-    min-height: 40px;
-    padding: 0.625rem 1.25rem;
+    min-height: 38px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
   }
 }
 
@@ -356,17 +399,17 @@ select.input {
   box-shadow: var(--shadow-sm);
 }
 
-/* Tablet and up: increase padding for more breathing room */
+/* Tablet and up: moderate padding */
 @media (min-width: 640px) {
   .card {
     padding: 1.5rem;
   }
 }
 
-/* Desktop: generous padding for airy feel */
+/* Desktop: balanced padding for professional look */
 @media (min-width: 1024px) {
   .card {
-    padding: 2rem;
+    padding: 1.5rem;
   }
 }
 
@@ -693,31 +736,54 @@ select.input {
 .stat-card {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
-  padding: 1.5rem;
+  padding: 1.25rem;
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
 }
 
+@media (min-width: 1024px) {
+  .stat-card {
+    padding: 1.125rem;
+  }
+}
+
 .stat-card-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.stat-card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .stat-card-value {
-  font-size: 1.875rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
 }
 
+@media (min-width: 1024px) {
+  .stat-card-value {
+    font-size: 1.625rem;
+  }
+}
+
 .stat-card-label {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   margin-top: 0.25rem;
+}
+
+@media (min-width: 1024px) {
+  .stat-card-label {
+    font-size: 0.875rem;
+  }
 }
 
 /* ============================================
