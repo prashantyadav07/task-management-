@@ -23,7 +23,19 @@ const migrateDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_tasks_is_deleted ON tasks(is_deleted);
     `);
 
-        Logger.info('✅ Database migration completed: is_deleted column added to tasks table');
+        // Add completed_by_user_id column to tasks table if it doesn't exist
+        await client.query(`
+      ALTER TABLE tasks 
+      ADD COLUMN IF NOT EXISTS completed_by_user_id INTEGER REFERENCES users(id);
+    `);
+
+        // Add late_submission_reason column to tasks table if it doesn't exist
+        await client.query(`
+      ALTER TABLE tasks 
+      ADD COLUMN IF NOT EXISTS late_submission_reason TEXT;
+    `);
+
+        Logger.info('✅ Database migration completed: is_deleted, completed_by_user_id, and late_submission_reason columns added to tasks table');
 
         await client.query('COMMIT');
         return true;
